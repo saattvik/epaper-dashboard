@@ -2,7 +2,7 @@ name: Update Weather Image
 
 on:
   schedule:
-    - cron: "2/5 * * * *"
+    - cron: "*/5 * * * *"
 
   workflow_dispatch:
 
