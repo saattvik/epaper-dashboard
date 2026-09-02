@@ -12,6 +12,7 @@ Output:                weather.bmp (in the same folder)
 import math
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import requests
 from PIL import Image, ImageDraw, ImageFont
@@ -437,7 +438,7 @@ def build_image(data, aqi):
     # -----------------------------------------------------------------
     # Header: city + date
     # -----------------------------------------------------------------
-    now_dt = datetime.now()
+    now_dt = datetime.now(ZoneInfo("Asia/Kolkata"))
     date_str = now_dt.strftime("%A, %d %B")
 
     city_w = text_w(draw, CITY_NAME, fonts["city"])
@@ -557,7 +558,7 @@ def build_image(data, aqi):
     # -----------------------------------------------------------------
     # Hourly temperature + precipitation-probability graph
     # -----------------------------------------------------------------
-    gx0, gx1 = 400, 855
+    gx0, gx1 = 400, 890
     gy0, gy1 = 280, 468
     rain_axis_right = page_right
 
