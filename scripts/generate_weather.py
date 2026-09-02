@@ -237,45 +237,103 @@ def draw_icon(draw, icon_type, cx, cy, size, fill=BLACK, bg=WHITE, width=4):
 # =====================================================================
 def draw_stat_icon(draw, kind, cx, cy, r, fill=BLACK, width=3):
     if kind in ("sunrise", "sunset"):
-        horizon_y = cy + r * 0.3
-        draw.line([cx - r * 1.3, horizon_y, cx + r * 1.3, horizon_y], fill=fill, width=width)
-        draw.pieslice([cx - r, horizon_y - r, cx + r, horizon_y + r], 180, 360, outline=fill, width=width)
-        for angle in range(200, 341, 35):
+        horizon_y = cy + r * 0.35
+        draw.line([cx - r * 1.25, horizon_y, cx + r * 1.25, horizon_y], fill=fill, width=width)
+        draw.arc(
+            [cx - r, horizon_y - r, cx + r, horizon_y + r],
+            180, 360, fill=fill, width=width
+        )
+
+        for angle in range(205, 336, 32):
             rad = math.radians(angle)
-            x1 = cx + (r * 0.55) * math.cos(rad); y1 = horizon_y + (r * 0.55) * math.sin(rad)
-            x2 = cx + (r * 0.9) * math.cos(rad);  y2 = horizon_y + (r * 0.9) * math.sin(rad)
+            x1 = cx + (r * 0.52) * math.cos(rad)
+            y1 = horizon_y + (r * 0.52) * math.sin(rad)
+            x2 = cx + (r * 0.86) * math.cos(rad)
+            y2 = horizon_y + (r * 0.86) * math.sin(rad)
             draw.line([x1, y1, x2, y2], fill=fill, width=max(1, width - 1))
+
         ax = cx + r * 1.55
         if kind == "sunrise":
-            draw.line([ax, horizon_y + r * 0.5, ax, horizon_y - r * 0.55], fill=fill, width=width)
-            draw.polygon([(ax - 5, horizon_y - r * 0.35), (ax + 5, horizon_y - r * 0.35), (ax, horizon_y - r * 0.65)], fill=fill)
+            draw.line(
+                [ax, horizon_y + r * 0.45, ax, horizon_y - r * 0.60],
+                fill=fill, width=width
+            )
+            draw.polygon(
+                [
+                    (ax - 5, horizon_y - r * 0.38),
+                    (ax + 5, horizon_y - r * 0.38),
+                    (ax, horizon_y - r * 0.68),
+                ],
+                fill=fill,
+            )
         else:
-            draw.line([ax, horizon_y - r * 0.55, ax, horizon_y + r * 0.5], fill=fill, width=width)
-            draw.polygon([(ax - 5, horizon_y + r * 0.3), (ax + 5, horizon_y + r * 0.3), (ax, horizon_y + r * 0.6)], fill=fill)
+            draw.line(
+                [ax, horizon_y - r * 0.60, ax, horizon_y + r * 0.45],
+                fill=fill, width=width
+            )
+            draw.polygon(
+                [
+                    (ax - 5, horizon_y + r * 0.24),
+                    (ax + 5, horizon_y + r * 0.24),
+                    (ax, horizon_y + r * 0.56),
+                ],
+                fill=fill,
+            )
+
     elif kind == "wind":
-        for i, dy in enumerate([-r * 0.5, 0, r * 0.5]):
-            length = r * (1.3 - i * 0.15)
-            draw.line([cx - r, cy + dy, cx - r + length, cy + dy], fill=fill, width=width)
-            draw.arc([cx - r + length - r * 0.3, cy + dy - r * 0.3,
-                      cx - r + length + r * 0.3, cy + dy + r * 0.3], 270, 90, fill=fill, width=width)
+        for i, dy in enumerate([-r * 0.55, 0, r * 0.55]):
+            x0 = cx - r * 1.00
+            x1 = cx + r * (0.45 + i * 0.08)
+            y = cy + dy
+            draw.line([x0, y, x1, y], fill=fill, width=width)
+            draw.arc(
+                [x1 - r * 0.50, y - r * 0.35, x1 + r * 0.20, y + r * 0.35],
+                270, 90, fill=fill, width=width
+            )
+
     elif kind == "humidity":
-        draw.polygon([(cx, cy - r), (cx - r * 0.75, cy + r * 0.6), (cx + r * 0.75, cy + r * 0.6)], outline=fill, width=width)
-        draw.pieslice([cx - r * 0.75, cy - r * 0.2, cx + r * 0.75, cy + r * 1.2], 0, 360, outline=fill, width=width)
+        # Teardrop outline made from a smooth sampled curve.
+        points = []
+        for i in range(25):
+            t = i / 24
+            angle = math.pi * t
+            x = cx - math.sin(angle) * r * (0.72 - 0.10 * t)
+            y = cy + r * 0.95 - t * r * 2.05
+            points.append((x, y))
+
+        for i in range(1, 25):
+            t = i / 24
+            angle = math.pi * t
+            x = cx + math.sin(angle) * r * (0.72 - 0.10 * (1 - t))
+            y = cy - r * 1.10 + t * r * 2.05
+            points.append((x, y))
+
+        draw.line(points + [points[0]], fill=fill, width=width, joint="curve")
+
     elif kind == "uv":
         draw_sun(draw, cx, cy, r * 0.55, fill, WHITE, rays=True, width=width)
+
     elif kind == "pressure":
         draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=fill, width=width)
-        draw.line([cx, cy, cx + r * 0.55, cy - r * 0.45], fill=fill, width=width)
+        draw.line([cx, cy, cx + r * 0.55, cy - r * 0.42], fill=fill, width=width)
         draw.ellipse([cx - 2, cy - 2, cx + 2, cy + 2], fill=fill)
-    elif kind == "aqi":
-        for i in range(3):
-            x = cx - r * 0.5 + i * r * 0.5
-            h = r * (0.6 + i * 0.35)
-            draw.line([x, cy + r * 0.7, x, cy + r * 0.7 - h], fill=fill, width=width)
-    elif kind == "visibility":
-        draw.ellipse([cx - r, cy - r * 0.5, cx + r, cy + r * 0.5], outline=fill, width=width)
-        draw.ellipse([cx - r * 0.35, cy - r * 0.35, cx + r * 0.35, cy + r * 0.35], outline=fill, width=width)
 
+    elif kind == "aqi":
+        for i, height_frac in enumerate((0.55, 0.88, 1.20)):
+            x = cx - r * 0.55 + i * r * 0.50
+            h = r * height_frac
+            draw.line([x, cy + r * 0.72, x, cy + r * 0.72 - h], fill=fill, width=width)
+
+    elif kind == "visibility":
+        draw.ellipse(
+            [cx - r, cy - r * 0.52, cx + r, cy + r * 0.52],
+            outline=fill, width=width
+        )
+        draw.ellipse(
+            [cx - r * 0.28, cy - r * 0.28, cx + r * 0.28, cy + r * 0.28],
+            outline=fill, width=width
+        )
+        draw.ellipse([cx - 2, cy - 2, cx + 2, cy + 2], fill=fill)
 
 # =====================================================================
 # Layout helpers
@@ -297,6 +355,66 @@ def dashed_hline(draw, x0, x1, y, fill=GRAY_MED, dash=4, gap=4, width=1):
         x += dash + gap
 
 
+def smooth_series(values, passes=2):
+    """Lightly smooth hourly values without significantly changing the trend."""
+    vals = [float(v) for v in values]
+    if len(vals) < 3:
+        return vals
+
+    for _ in range(passes):
+        vals = (
+            [vals[0]]
+            + [
+                (vals[i - 1] + 2 * vals[i] + vals[i + 1]) / 4
+                for i in range(1, len(vals) - 1)
+            ]
+            + [vals[-1]]
+        )
+    return vals
+
+
+def catmull_rom_spline(points, samples_per_segment=16):
+    """Create a smooth Catmull-Rom curve passing through the supplied points."""
+    if len(points) < 3:
+        return points
+
+    def interp(p0, p1, p2, p3, t):
+        t2 = t * t
+        t3 = t2 * t
+
+        x = 0.5 * (
+            (2 * p1[0])
+            + (-p0[0] + p2[0]) * t
+            + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2
+            + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3
+        )
+
+        y = 0.5 * (
+            (2 * p1[1])
+            + (-p0[1] + p2[1]) * t
+            + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2
+            + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3
+        )
+        return (x, y)
+
+    padded = [points[0]] + list(points) + [points[-1]]
+    curve = []
+
+    for i in range(1, len(padded) - 2):
+        p0, p1, p2, p3 = (
+            padded[i - 1],
+            padded[i],
+            padded[i + 1],
+            padded[i + 2],
+        )
+        for sample in range(samples_per_segment):
+            t = sample / samples_per_segment
+            curve.append(interp(p0, p1, p2, p3, t))
+
+    curve.append(points[-1])
+    return curve
+
+
 # =====================================================================
 # Main drawing routine
 # =====================================================================
@@ -313,40 +431,54 @@ def build_image(data, aqi):
     now_code = current["weather_code"]
     now_icon = icon_type_for_code(now_code, is_day)
 
+    # Shared right edge for the header, forecast, divider and footer.
+    page_right = 930
+
     # -----------------------------------------------------------------
-    # Header: city + date (top right)
+    # Header: city + date
     # -----------------------------------------------------------------
     now_dt = datetime.now()
     date_str = now_dt.strftime("%A, %d %B")
 
     city_w = text_w(draw, CITY_NAME, fonts["city"])
-    draw.text((WIDTH - 20 - city_w, 12), CITY_NAME, font=fonts["city"], fill=BLACK)
+    draw.text((page_right - city_w, 12), CITY_NAME, font=fonts["city"], fill=BLACK)
+
     date_w = text_w(draw, date_str, fonts["date"])
-    draw.text((WIDTH - 20 - date_w, 58), date_str, font=fonts["date"], fill=BLACK)
+    draw.text((page_right - date_w, 58), date_str, font=fonts["date"], fill=BLACK)
 
     # -----------------------------------------------------------------
-    # Current conditions: icon + big temp + feels like (top left)
+    # Current conditions: icon + big temp + feels like + today's high/low
     # -----------------------------------------------------------------
     draw_icon(draw, now_icon, cx=105, cy=115, size=75, width=5)
 
     temp_val = round(current["temperature_2m"])
     temp_str = f"{temp_val}"
     draw.text((210, 55), temp_str, font=fonts["temp_big"], fill=BLACK)
+
     tw = text_w(draw, temp_str, fonts["temp_big"])
     draw.text((210 + tw + 5, 60), "\u00b0C", font=fonts["temp_unit"], fill=BLACK)
 
     feels = round(current["apparent_temperature"])
     draw.text((212, 165), f"Feels like {feels}\u00b0", font=fonts["feels"], fill=BLACK)
 
+    today_hi = round(daily["temperature_2m_max"][0])
+    today_lo = round(daily["temperature_2m_min"][0])
+    draw.text(
+        (212, 198),
+        f"H: {today_hi}\u00b0   L: {today_lo}\u00b0",
+        font=fonts["day_temp"],
+        fill=GRAY_MED,
+    )
+
     # -----------------------------------------------------------------
-    # 5-day forecast row (top right, below the date)
+    # 5-day forecast row
     # -----------------------------------------------------------------
-    forecast_x0, forecast_x1 = 480, 940
+    forecast_x0, forecast_x1 = 485, page_right
     col_w = (forecast_x1 - forecast_x0) / 5
     day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
     for i in range(5):
-        day_idx = i + 1  # skip today (index 0), show next 5 days
+        day_idx = i + 1
         cx = forecast_x0 + col_w * i + col_w / 2
 
         date_iso = daily["time"][day_idx]
@@ -358,23 +490,28 @@ def build_image(data, aqi):
 
         hi = round(daily["temperature_2m_max"][day_idx])
         lo = round(daily["temperature_2m_min"][day_idx])
-        draw_centered_text(draw, cx, 205, f"{hi}\u00b0|{lo}\u00b0", fonts["day_temp"])
+        draw_centered_text(
+            draw,
+            cx,
+            205,
+            f"{hi}\u00b0|{lo}\u00b0",
+            fonts["day_temp"],
+        )
 
     # -----------------------------------------------------------------
     # Divider
     # -----------------------------------------------------------------
-    draw.line([20, 260, 940, 260], fill=GRAY_MED, width=1)
+    draw.line([20, 260, page_right, 260], fill=GRAY_MED, width=1)
 
     # -----------------------------------------------------------------
-    # Stat grid (left side, 4 rows x 2 columns)
+    # Stat grid
     # -----------------------------------------------------------------
     sunrise_str = datetime.fromisoformat(daily["sunrise"][0]).strftime("%H:%M")
-    sunset_str  = datetime.fromisoformat(daily["sunset"][0]).strftime("%H:%M")
-    wind_kmh    = round(current["wind_speed_10m"], 1)
-    humidity    = round(current["relative_humidity_2m"])
-    pressure    = round(current["pressure_msl"])
+    sunset_str = datetime.fromisoformat(daily["sunset"][0]).strftime("%H:%M")
+    wind_kmh = round(current["wind_speed_10m"], 1)
+    humidity = round(current["relative_humidity_2m"])
+    pressure = round(current["pressure_msl"])
 
-    # find current hour index in the hourly arrays
     hour_now_str = now_dt.strftime("%Y-%m-%dT%H:00")
     try:
         cur_idx = hourly["time"].index(hour_now_str)
@@ -382,20 +519,29 @@ def build_image(data, aqi):
         cur_idx = 0
 
     uv_val = round(hourly["uv_index"][cur_idx], 1)
-    uv_level = "Low" if uv_val < 3 else "Moderate" if uv_val < 6 else "High" if uv_val < 8 else "Very High"
+    uv_level = (
+        "Low" if uv_val < 3
+        else "Moderate" if uv_val < 6
+        else "High" if uv_val < 8
+        else "Very High"
+    )
 
     vis_km = round(hourly["visibility"][cur_idx] / 1000, 1)
     aqi_str = f"{aqi}" if aqi is not None else "N/A"
 
     stats = [
-        ("sunrise", "Sunrise", sunrise_str), ("sunset", "Sunset", sunset_str),
-        ("wind", "Wind", f"{wind_kmh} km/h"), ("humidity", "Humidity", f"{humidity}%"),
-        ("uv", "UV Index", f"{uv_val} {uv_level}"), ("pressure", "Pressure", f"{pressure} hPa"),
-        ("aqi", "Air Quality", aqi_str), ("visibility", "Visibility", f"{vis_km} km"),
+        ("sunrise", "Sunrise", sunrise_str),
+        ("sunset", "Sunset", sunset_str),
+        ("wind", "Wind", f"{wind_kmh} km/h"),
+        ("humidity", "Humidity", f"{humidity}%"),
+        ("uv", "UV Index", f"{uv_val} {uv_level}"),
+        ("pressure", "Pressure", f"{pressure} hPa"),
+        ("aqi", "Air Quality", aqi_str),
+        ("visibility", "Visibility", f"{vis_km} km"),
     ]
 
     row_h = 58
-    col0_x, col1_x = 20, 200
+    col0_x, col1_x = 20, 205
     start_y = 278
 
     for i, (kind, label, value) in enumerate(stats):
@@ -409,68 +555,137 @@ def build_image(data, aqi):
         draw.text((x + 45, y + 24), value, font=fonts["stat_value"], fill=BLACK)
 
     # -----------------------------------------------------------------
-    # Hourly temperature + precipitation-probability graph (right side)
+    # Hourly temperature + precipitation-probability graph
     # -----------------------------------------------------------------
-    gx0, gx1 = 400, 890
+    gx0, gx1 = 400, 855
     gy0, gy1 = 280, 468
+    rain_axis_right = page_right
 
     hrs = 24
     temps = hourly["temperature_2m"][cur_idx: cur_idx + hrs]
     precs = hourly["precipitation_probability"][cur_idx: cur_idx + hrs]
     times = hourly["time"][cur_idx: cur_idx + hrs]
 
-    tmin, tmax = min(temps), max(temps)
-    axis_min = math.floor((tmin - 2) / 5) * 5
-    axis_max = math.ceil((tmax + 2) / 5) * 5
-    if axis_max == axis_min:
-        axis_max += 5
+    point_count = min(len(temps), len(precs), len(times), hrs)
+    temps = temps[:point_count]
+    precs = precs[:point_count]
+    times = times[:point_count]
 
-    def temp_to_y(t):
-        return gy1 - (t - axis_min) / (axis_max - axis_min) * (gy1 - gy0)
+    if point_count >= 2:
+        tmin, tmax = min(temps), max(temps)
+        axis_min = math.floor((tmin - 2) / 5) * 5
+        axis_max = math.ceil((tmax + 2) / 5) * 5
 
-    steps = 5
-    for i in range(steps + 1):
-        y = gy0 + i * (gy1 - gy0) / steps
-        temp_label = axis_max - i * (axis_max - axis_min) / steps
-        pct_label = 100 - i * 100 / steps
-        dashed_hline(draw, gx0, gx1, y)
-        draw.text((gx0 - 38, y - 7), f"{round(temp_label)}\u00b0", font=fonts["axis"], fill=GRAY_MED)
-        draw.text((gx1 + 6, y - 7), f"{round(pct_label)}%", font=fonts["axis"], fill=GRAY_MED)
+        if axis_max == axis_min:
+            axis_max += 5
 
-    # precipitation probability as light-gray shading, bottom-aligned in the box
-    bar_w = (gx1 - gx0) / (hrs - 1)
-    for i, p in enumerate(precs):
-        if p <= 0:
-            continue
-        x = gx0 + i * bar_w
-        bar_h = (p / 100) * (gy1 - gy0)
-        draw.rectangle([x - bar_w / 2, gy1 - bar_h, x + bar_w / 2, gy1], fill=GRAY_LIGHT)
+        def temp_to_y(t):
+            return gy1 - (t - axis_min) / (axis_max - axis_min) * (gy1 - gy0)
 
-    # temperature line
-    points = [(gx0 + i * bar_w, temp_to_y(t)) for i, t in enumerate(temps)]
-    draw.line(points, fill=BLACK, width=3, joint="curve")
+        steps = 5
 
-    # axis legend labels (top of graph, above the highest gridline)
-    draw.text((gx0 - 38, gy0 - 22), "Temp", font=fonts["axis"], fill=BLACK)
-    rain_label = "Rain %"
-    rw = text_w(draw, rain_label, fonts["axis"])
-    draw.text((gx1 + 6 - max(0, rw - 34), gy0 - 22), rain_label, font=fonts["axis"], fill=GRAY_MED)
+        for i in range(steps + 1):
+            y = gy0 + i * (gy1 - gy0) / steps
+            temp_label = axis_max - i * (axis_max - axis_min) / steps
+            rain_label = 100 - i * 100 / steps
 
-    # x-axis hour labels every 3 hours
-    for i in range(0, hrs, 3):
-        hour_label = datetime.fromisoformat(times[i]).strftime("%H")
-        x = gx0 + i * bar_w
-        draw_centered_text(draw, x, gy1 + 8, hour_label, fonts["axis"], fill=GRAY_MED)
+            dashed_hline(draw, gx0, gx1, y)
+
+            left_text = f"{round(temp_label)}\u00b0"
+            left_x = gx0 - 8 - text_w(draw, left_text, fonts["axis"])
+            draw.text(
+                (left_x, y - 8),
+                left_text,
+                font=fonts["axis"],
+                fill=GRAY_MED,
+            )
+
+            right_text = f"{round(rain_label)}"
+            right_x = rain_axis_right - text_w(draw, right_text, fonts["axis"])
+            draw.text(
+                (right_x, y - 8),
+                right_text,
+                font=fonts["axis"],
+                fill=GRAY_MED,
+            )
+
+        temp_header = "Temp"
+        temp_header_x = gx0 - 8 - text_w(draw, temp_header, fonts["axis"])
+        draw.text(
+            (temp_header_x, gy0 - 24),
+            temp_header,
+            font=fonts["axis"],
+            fill=BLACK,
+        )
+
+        rain_header = "Rain %"
+        rain_header_x = rain_axis_right - text_w(draw, rain_header, fonts["axis"])
+        draw.text(
+            (rain_header_x, gy0 - 24),
+            rain_header,
+            font=fonts["axis"],
+            fill=GRAY_MED,
+        )
+
+        x_step = (gx1 - gx0) / (point_count - 1)
+
+        for i, p in enumerate(precs):
+            if p is None or p <= 0:
+                continue
+
+            x = gx0 + i * x_step
+            bar_h = (p / 100) * (gy1 - gy0)
+            bar_half_w = x_step * 0.48
+            left = max(gx0, x - bar_half_w)
+            right = min(gx1, x + bar_half_w)
+
+            draw.rectangle(
+                [left, gy1 - bar_h, right, gy1],
+                fill=GRAY_LIGHT,
+            )
+
+        smooth_temps = smooth_series(temps, passes=2)
+        raw_points = [
+            (gx0 + i * x_step, temp_to_y(t))
+            for i, t in enumerate(smooth_temps)
+        ]
+        smooth_points = catmull_rom_spline(
+            raw_points,
+            samples_per_segment=14,
+        )
+
+        draw.line(
+            smooth_points,
+            fill=BLACK,
+            width=4,
+            joint="curve",
+        )
+
+        for i in range(0, point_count, 3):
+            hour_label = datetime.fromisoformat(times[i]).strftime("%H")
+            x = gx0 + i * x_step
+            draw_centered_text(
+                draw,
+                x,
+                gy1 + 8,
+                hour_label,
+                fonts["axis"],
+                fill=GRAY_MED,
+            )
 
     # -----------------------------------------------------------------
-    # Footer: last updated timestamp
+    # Footer
     # -----------------------------------------------------------------
     footer = "Updated " + now_dt.strftime("%d %b %Y, %H:%M")
     fw = text_w(draw, footer, fonts["footer"])
-    draw.text((WIDTH - 20 - fw, HEIGHT - 26), footer, font=fonts["footer"], fill=GRAY_MED)
+    draw.text(
+        (page_right - fw, HEIGHT - 26),
+        footer,
+        font=fonts["footer"],
+        fill=GRAY_MED,
+    )
 
     return img
-
 
 def save_bmp(img, path):
     """Save the image as an uncompressed 8-bit grayscale BMP.
