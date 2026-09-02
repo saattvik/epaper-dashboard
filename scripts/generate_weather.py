@@ -9,6 +9,7 @@ Run directly to test:  python generate_weather.py
 Output:                weather.bmp (in the same folder)
 """
 
+import time
 import math
 import os
 from datetime import datetime
@@ -84,9 +85,20 @@ def fetch_weather():
         f"&timezone={TIMEZONE}"
         "&forecast_days=6"
     )
-    r = requests.get(url, timeout=15)
-    r.raise_for_status()
-    return r.json()
+
+    for attempt in range(3):
+        try:
+            r = requests.get(url, timeout=30)
+            r.raise_for_status()
+            return r.json()
+    
+        except requests.exceptions.RequestException as e:
+            print(f"Weather fetch attempt {attempt + 1}/3 failed: {e}")
+    
+            if attempt == 2:
+                raise
+    
+            time.sleep(5)
 
 
 def fetch_aqi():
