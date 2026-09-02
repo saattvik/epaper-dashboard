@@ -473,8 +473,17 @@ def build_image(data, aqi):
 
 
 def save_bmp(img, path):
-    """Pillow writes an uncompressed 8-bit BMP with grayscale palette for 'L'
-    mode images by default - exactly what the ESP32 BMP parser expects."""
+    """Save the image as an uncompressed 8-bit grayscale BMP.
+
+    Creates the output directory first if it does not already exist.
+    This is needed on GitHub Actions because the generated docs/ folder
+    is not stored in the Git repository.
+    """
+    output_dir = os.path.dirname(path)
+
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
     img.save(path, format="BMP")
 
 
