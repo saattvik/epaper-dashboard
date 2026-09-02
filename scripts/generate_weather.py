@@ -644,14 +644,14 @@ def build_image(data, aqi):
                 fill=GRAY_LIGHT,
             )
 
-        smooth_temps = smooth_series(temps, passes=2)
+        smooth_temps = smooth_series(temps, passes=0)
         raw_points = [
             (gx0 + i * x_step, temp_to_y(t))
             for i, t in enumerate(smooth_temps)
         ]
         smooth_points = catmull_rom_spline(
             raw_points,
-            samples_per_segment=14,
+            samples_per_segment=8,
         )
 
         draw.line(
