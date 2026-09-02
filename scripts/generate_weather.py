@@ -445,7 +445,7 @@ def build_image(data, aqi):
     draw.text((page_right - city_w, 12), CITY_NAME, font=fonts["city"], fill=BLACK)
 
     date_w = text_w(draw, date_str, fonts["date"])
-    draw.text((page_right - date_w, 58), date_str, font=fonts["date"], fill=BLACK)
+    draw.text((page_right - date_w, 60), date_str, font=fonts["date"], fill=BLACK)
 
     # -----------------------------------------------------------------
     # Current conditions: icon + big temp + feels like + today's high/low
@@ -468,7 +468,7 @@ def build_image(data, aqi):
         (212, 198),
         f"H: {today_hi}\u00b0   L: {today_lo}\u00b0",
         font=fonts["day_temp"],
-        fill=GRAY_MED,
+        fill=BLACK,
     )
 
     # -----------------------------------------------------------------
@@ -609,24 +609,6 @@ def build_image(data, aqi):
                 font=fonts["axis"],
                 fill=GRAY_MED,
             )
-
-        temp_header = "Temp"
-        temp_header_x = gx0 - 8 - text_w(draw, temp_header, fonts["axis"])
-        draw.text(
-            (temp_header_x, gy0 - 24),
-            temp_header,
-            font=fonts["axis"],
-            fill=BLACK,
-        )
-
-        rain_header = "Rain %"
-        rain_header_x = rain_axis_right - text_w(draw, rain_header, fonts["axis"])
-        draw.text(
-            (rain_header_x, gy0 - 24),
-            rain_header,
-            font=fonts["axis"],
-            fill=GRAY_MED,
-        )
 
         x_step = (gx1 - gx0) / (point_count - 1)
 
