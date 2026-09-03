@@ -349,95 +349,95 @@ draw.text(
     fill=BLACK,
 )
 
-    # ========================================================
-    # Standings list
-    # ========================================================
-    start_x = 355
-    row_y = 78
-    row_h = 41
+# ========================================================
+# Standings list
+# ========================================================
+start_x = 355
+row_y = 78
+row_h = 41
 
-    for row in rows[:10]:
+for row in rows[:10]:
 
-        draw.line(
-            (start_x, row_y + row_h, 940, row_y + row_h),
-            fill=GRAY_LIGHT,
-            width=1,
-        )
+    draw.line(
+        (start_x, row_y + row_h, 940, row_y + row_h),
+        fill=GRAY_LIGHT,
+        width=1,
+    )
 
-        # position
-        draw.text(
-            (start_x + 10, row_y + 8),
-            format_points(row["position"]),
-            font=position_font,
-            fill=BLACK,
-        )
-
-        # team logo
-        logo_filename = TEAM_LOGOS.get(row["team"])
-
-        if logo_filename:
-            logo_path = TEAM_DIR / logo_filename
-
-            if logo_path.exists():
-                team_logo = Image.open(logo_path).convert("RGBA")
-
-                paste_contain(
-                    img,
-                    team_logo,
-                    (
-                        start_x + 50,
-                        row_y + 5,
-                        start_x + 90,
-                        row_y + 35,
-                    ),
-                )
-
-        # name
-        draw.text(
-            (start_x + 105, row_y + 3),
-            row["name"].title(),
-            font=row_name_font,
-            fill=BLACK,
-        )
-
-        # team
-        draw.text(
-            (start_x + 105, row_y + 23),
-            row["team"],
-            font=row_team_font,
-            fill=GRAY_MED,
-        )
-
-        # points
-        pts = format_points(row["points"])
-        pts_w = text_w(draw, pts, row_points_font)
-
-        draw.text(
-            (920 - pts_w, row_y + 10),
-            pts,
-            font=row_points_font,
-            fill=BLACK,
-        )
-
-        row_y += row_h
-
-    # ========================================================
-    # Footer
-    # ========================================================
-    now = datetime.now(ZoneInfo(TIMEZONE))
-
-    footer = "Updated " + now.strftime("%d %b %Y, %H:%M")
-
-    footer_w = text_w(draw, footer, footer_font)
-
+    # position
     draw.text(
-        (940 - footer_w, 518),
-        footer,
-        font=footer_font,
+        (start_x + 10, row_y + 8),
+        format_points(row["position"]),
+        font=position_font,
+        fill=BLACK,
+    )
+
+    # team logo
+    logo_filename = TEAM_LOGOS.get(row["team"])
+
+    if logo_filename:
+        logo_path = TEAM_DIR / logo_filename
+
+        if logo_path.exists():
+            team_logo = Image.open(logo_path).convert("RGBA")
+
+            paste_contain(
+                img,
+                team_logo,
+                (
+                    start_x + 50,
+                    row_y + 5,
+                    start_x + 90,
+                    row_y + 35,
+                ),
+            )
+
+    # name
+    draw.text(
+        (start_x + 105, row_y + 3),
+        row["name"].title(),
+        font=row_name_font,
+        fill=BLACK,
+    )
+
+    # team
+    draw.text(
+        (start_x + 105, row_y + 23),
+        row["team"],
+        font=row_team_font,
         fill=GRAY_MED,
     )
 
-    return img
+    # points
+    pts = format_points(row["points"])
+    pts_w = text_w(draw, pts, row_points_font)
+
+    draw.text(
+        (920 - pts_w, row_y + 10),
+        pts,
+        font=row_points_font,
+        fill=BLACK,
+    )
+
+    row_y += row_h
+
+# ========================================================
+# Footer
+# ========================================================
+now = datetime.now(ZoneInfo(TIMEZONE))
+
+footer = "Updated " + now.strftime("%d %b %Y, %H:%M")
+
+footer_w = text_w(draw, footer, footer_font)
+
+draw.text(
+    (940 - footer_w, 518),
+    footer,
+    font=footer_font,
+    fill=GRAY_MED,
+)
+
+return img
 
 
 # ============================================================
