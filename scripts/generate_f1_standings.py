@@ -350,7 +350,7 @@ def build_image(rows):
             paste_contain(
                 img,
                 headshot,
-                (28, 102, 322, 320),
+                (5, 85, 330, 335),
             )
     
         except Exception as e:
