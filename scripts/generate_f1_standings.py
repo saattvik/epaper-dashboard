@@ -130,6 +130,19 @@ def paste_contain(base, overlay, box):
     base.paste(gray, (x, y), alpha)
 
 
+def trim_transparent(img):
+    if img.mode != "RGBA":
+        return img
+
+    alpha = img.getchannel("A")
+    bbox = alpha.getbbox()
+
+    if bbox:
+        return img.crop(bbox)
+
+    return img
+
+
 def wrap_text(draw, text, font, max_width):
     words = text.split()
 
@@ -331,18 +344,20 @@ def build_image(rows):
             headshot = fetch_image(
                 leader["headshot_url"]
             )
-
+    
+            headshot = trim_transparent(headshot)
+    
             paste_contain(
                 img,
                 headshot,
-                (45, 120, 310, 305),
+                (28, 102, 322, 320),
             )
-
+    
         except Exception as e:
             print(
                 f"Leader image failed: {e}"
             )
-
+    
             draw.text(
                 (115, 190),
                 "No image",
@@ -372,7 +387,7 @@ def build_image(rows):
         name_max_width,
     )
 
-    name_y = 325
+    name_y = 334
     line_gap = 34
 
     for i, line in enumerate(name_lines):
