@@ -126,6 +126,25 @@ def paste_contain(base, overlay, box):
     base.paste(gray, (x, y), alpha)
 
 
+def wrap_text(draw, text, font, max_width):
+    words = text.split()
+    if not words:
+        return [""]
+
+    lines = []
+    current = words[0]
+
+    for word in words[1:]:
+        trial = current + " " + word
+        if text_w(draw, trial, font) <= max_width:
+            current = trial
+        else:
+            lines.append(current)
+            current = word
+
+    lines.append(current)
+    return lines
+
 # ============================================================
 # Data
 # ============================================================
@@ -185,6 +204,27 @@ def get_standings():
     rows.sort(key=lambda r: r["position"])
 
     return rows
+
+
+def get_leader_headshot_url(leader_row):
+    drivers = fetch_json(
+        f"{OPENF1_BASE}/drivers",
+        params={"session_key": "latest"},
+    )
+
+    # First try matching by driver number
+    for d in drivers:
+        if str(d.get("driver_number")) == str(leader_row.get("number")):
+            return d.get("headshot_url")
+
+    # Fallback: match by acronym
+    leader_acr = (leader_row.get("acronym") or "").upper()
+    for d in drivers:
+        if (d.get("name_acronym") or "").upper() == leader_acr:
+            return d.get("headshot_url")
+
+    return None
+
 # ============================================================
 # Rendering
 # ============================================================
@@ -249,44 +289,65 @@ def build_image(rows):
         fill=GRAY_DARK,
     )
 
-    if leader["headshot_url"]:
-        try:
-            headshot = fetch_image(leader["headshot_url"])
-            paste_contain(
-                img,
-                headshot,
-                (45, 125, 310, 330),
-            )
-        except Exception as e:
-            print(f"Leader image failed: {e}")
+# Leader image
+if leader.get("headshot_url"):
+    try:
+        headshot = fetch_image(leader["headshot_url"])
+        paste_contain(
+            img,
+            headshot,
+            (45, 120, 310, 305),
+        )
+    except Exception as e:
+        print(f"Leader image failed: {e}")
+        draw.text((115, 190), "No image", font=leader_team_font, fill=GRAY_MED)
+else:
+    draw.text((115, 190), "No image", font=leader_team_font, fill=GRAY_MED)
 
+# Wrapped leader name
+name_max_width = left_x1 - left_x0 - 40
+name_lines = wrap_text(
+    draw,
+    leader["name"].title(),
+    leader_font,
+    name_max_width,
+)
+
+name_y = 325
+line_gap = 32
+
+for i, line in enumerate(name_lines):
     draw.text(
-        (40, 350),
-        leader["name"].title(),
+        (40, name_y + i * line_gap),
+        line,
         font=leader_font,
         fill=BLACK,
     )
 
-    draw.text(
-        (40, 395),
-        leader["team"],
-        font=leader_team_font,
-        fill=GRAY_DARK,
-    )
+team_y = name_y + len(name_lines) * line_gap + 6
+draw.text(
+    (40, team_y),
+    leader["team"],
+    font=leader_team_font,
+    fill=GRAY_DARK,
+)
 
-    draw.text(
-        (40, 435),
-        str(leader["points"]),
-        font=points_big,
-        fill=BLACK,
-    )
+points_label_y = team_y + 34
+points_value_y = points_label_y + 18
 
-    draw.text(
-        (40, 480),
-        "PTS",
-        font=footer_font,
-        fill=GRAY_MED,
-    )
+draw.text(
+    (40, points_label_y),
+    "PTS",
+    font=footer_font,
+    fill=GRAY_MED,
+)
+
+draw.text(
+    (40, points_value_y),
+    format_points(leader["points"]),
+    font=points_big,
+    fill=BLACK,
+)
 
     # ========================================================
     # Standings list
@@ -392,6 +453,9 @@ def main():
         raise RuntimeError("No standings returned")
 
     print(f"Fetched {len(rows)} drivers")
+
+    print("Fetching leader headshot...")
+    rows[0]["headshot_url"] = get_leader_headshot_url(rows[0])
 
     img = build_image(rows)
 
