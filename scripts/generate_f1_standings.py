@@ -112,7 +112,7 @@ def fetch_image(url):
     return Image.open(BytesIO(r.content)).convert("RGBA")
 
 
-def paste_contain(base, overlay, box, scale=1.0):
+def paste_contain(base, overlay, box, scale=1.0, align_bottom=False):
     x0, y0, x1, y1 = box
 
     max_w = x1 - x0
@@ -120,13 +120,11 @@ def paste_contain(base, overlay, box, scale=1.0):
 
     img = overlay.copy()
 
-    # Calculate scale needed to fit inside box
     fit_scale = min(
         max_w / img.width,
         max_h / img.height
     )
 
-    # Additional manual enlargement factor
     final_scale = fit_scale * scale
 
     new_w = int(img.width * final_scale)
@@ -137,9 +135,14 @@ def paste_contain(base, overlay, box, scale=1.0):
         Image.LANCZOS
     )
 
-    # Center image in the box
+    # Center horizontally
     x = x0 + (max_w - new_w) // 2
-    y = y0 + (max_h - new_h) // 2
+
+    # Either center vertically or align to bottom
+    if align_bottom:
+        y = y1 - new_h
+    else:
+        y = y0 + (max_h - new_h) // 2
 
     gray = ImageOps.grayscale(img)
     alpha = img.getchannel("A")
@@ -371,8 +374,9 @@ def build_image(rows):
             paste_contain(
                 img,
                 headshot,
-                (5, 85, 330, 335),
-                scale=1.35,
+                (20, 100, 335, 325),
+                scale=1.15,
+                align_bottom=True,
             )
     
         except Exception as e:
