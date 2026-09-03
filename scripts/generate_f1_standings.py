@@ -311,7 +311,7 @@ def build_image(rows):
         paste_contain(
             img,
             logo,
-            (20, 10, 95, 48),
+            (0, 0, 130, 70),
         )
     else:
         draw.text(
@@ -344,17 +344,17 @@ def build_image(rows):
     # Leader section
     # ========================================================
     left_x0 = 20
-    left_x1 = 335
+    left_x1 = 280
 
     draw.rounded_rectangle(
         (left_x0, 78, left_x1, 505),
         radius=15,
-        outline=GRAY_LIGHT,
+        outline=GRAY_DARK,
         width=2,
     )
 
     draw.text(
-        (40, 92),
+        (45, 92),
         "CHAMPIONSHIP LEADER",
         font=leader_team_font,
         fill=GRAY_DARK,
@@ -365,25 +365,42 @@ def build_image(rows):
     # -------------------------
     if leader.get("headshot_url"):
         try:
-            headshot = fetch_image(
-                leader["headshot_url"]
+            high_res_url = leader["headshot_url"].replace(
+                ".transform/1col/image.png",
+                ".transform/6col/image.png"
             )
-    
-            headshot = trim_transparent(headshot)
-    
+
+            print(
+                "Leader high-res image URL:",
+                high_res_url
+            )
+
+            headshot = fetch_image(
+                high_res_url
+            )
+
+            print(
+                "Leader source image size:",
+                headshot.size
+            )
+
+            headshot = trim_transparent(
+                headshot
+            )
+
             paste_contain(
                 img,
                 headshot,
-                (20, 100, 335, 325),
-                scale=0.8,
+                (0, 90, 300, 325),
+                scale=0.85,
                 align_bottom=True,
             )
-    
+
         except Exception as e:
             print(
                 f"Leader image failed: {e}"
             )
-    
+
             draw.text(
                 (115, 190),
                 "No image",
@@ -433,7 +450,7 @@ def build_image(rows):
     team_y = (
         name_y
         + len(name_lines) * line_gap
-        + 6
+        + 2
     )
 
     draw.text(
@@ -447,7 +464,7 @@ def build_image(rows):
     # Leader points
     # -------------------------
     points_label_y = team_y + 32
-    points_value_y = points_label_y + 16
+    points_value_y = points_label_y + 10
 
     draw.text(
         (40, points_label_y),
@@ -468,9 +485,9 @@ def build_image(rows):
     # ========================================================
     # Standings list
     # ========================================================
-    start_x = 355
-    row_y = 78
-    row_h = 41
+    start_x = 320
+    row_y = 70
+    row_h = 43
 
     for row in rows[:10]:
 
@@ -482,7 +499,7 @@ def build_image(rows):
                 row_y + row_h,
             ),
             fill=GRAY_LIGHT,
-            width=1,
+            width=2,
         )
 
         # ---------------------
