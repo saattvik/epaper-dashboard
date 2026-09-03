@@ -65,15 +65,24 @@ def text_w(draw, text, font):
     return box[2] - box[0]
 
 
-def fetch_json(url, params=None, retries=3):
+def fetch_json(url, params=None, headers=None, retries=3):
     for attempt in range(retries):
         try:
-            r = requests.get(url, params=params, timeout=30)
+            r = requests.get(
+                url,
+                params=params,
+                headers=headers,
+                timeout=30,
+            )
+
             r.raise_for_status()
             return r.json()
 
         except requests.RequestException as e:
-            print(f"Request failed {attempt + 1}/{retries}: {e}")
+            print(
+                f"Request failed "
+                f"{attempt + 1}/{retries}: {e}"
+            )
 
             if attempt == retries - 1:
                 raise
@@ -108,62 +117,62 @@ def paste_contain(base, overlay, box):
 # ============================================================
 # Data
 # ============================================================
-def get_latest_race_session():
-    sessions = fetch_json(
-        f"{OPENF1_BASE}/sessions",
-        params={
-            "session_name": "Race",
-            "year": datetime.now(ZoneInfo(TIMEZONE)).year,
-        },
-    )
-
-    if not sessions:
-        raise RuntimeError("No race sessions returned")
-
-    sessions.sort(
-        key=lambda s: s.get("date_end") or s.get("date_start") or ""
-    )
-
-    return sessions[-1]
+JOLPICA_BASE = "https://api.jolpi.ca/ergast/f1"
 
 
-def get_standings(session_key):
-    standings = fetch_json(
-        f"{OPENF1_BASE}/championship_drivers",
-        params={"session_key": session_key},
-    )
+def get_standings():
+    season = datetime.now(ZoneInfo(TIMEZONE)).year
 
-    drivers = fetch_json(
-        f"{OPENF1_BASE}/drivers",
-        params={"session_key": session_key},
-    )
+    url = f"{JOLPICA_BASE}/{season}/driverstandings/"
 
-    driver_map = {
-        d["driver_number"]: d
-        for d in drivers
+    headers = {
+        "User-Agent": "epaper-dashboard/1.0"
     }
+
+    data = fetch_json(
+        url,
+        headers=headers,
+    )
+
+    standings_lists = (
+        data["MRData"]
+        ["StandingsTable"]
+        ["StandingsLists"]
+    )
+
+    if not standings_lists:
+        raise RuntimeError("No standings returned by Jolpica")
+
+    standings = standings_lists[0]["DriverStandings"]
 
     rows = []
 
-    for standing in standings:
-        number = standing["driver_number"]
-        driver = driver_map.get(number, {})
+    for item in standings:
+        driver = item["Driver"]
+        constructors = item.get("Constructors", [])
+
+        team_name = (
+            constructors[0]["name"]
+            if constructors
+            else ""
+        )
 
         rows.append({
-            "position": standing["position_current"],
-            "points": standing["points_current"],
-            "number": number,
-            "name": driver.get("full_name", f"Driver {number}"),
-            "acronym": driver.get("name_acronym", ""),
-            "team": driver.get("team_name", ""),
-            "headshot_url": driver.get("headshot_url"),
+            "position": int(item["position"]),
+            "points": float(item["points"]),
+            "number": driver.get("permanentNumber"),
+            "name": (
+                f"{driver['givenName']} "
+                f"{driver['familyName']}"
+            ),
+            "acronym": driver.get("code", ""),
+            "team": team_name,
+            "headshot_url": None,
         })
 
     rows.sort(key=lambda r: r["position"])
 
     return rows
-
-
 # ============================================================
 # Rendering
 # ============================================================
@@ -363,13 +372,9 @@ def build_image(rows):
 # ============================================================
 def main():
 
-    print("Fetching latest F1 race session...")
-    session = get_latest_race_session()
+    print("Fetching current F1 driver standings...")
 
-    print(f"Using session key: {session['session_key']}")
-
-    print("Fetching driver standings...")
-    rows = get_standings(session["session_key"])
+    rows = get_standings()
 
     if not rows:
         raise RuntimeError("No standings returned")
