@@ -375,7 +375,7 @@ def build_image(rows):
                 img,
                 headshot,
                 (20, 100, 335, 325),
-                scale=1.0,
+                scale=0.8,
                 align_bottom=True,
             )
     
