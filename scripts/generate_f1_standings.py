@@ -38,10 +38,19 @@ TEAM_LOGOS = {
     "Mercedes": "mercedes.png",
     "Ferrari": "ferrari.png",
     "McLaren": "mclaren.png",
+
+    "Red Bull": "red_bull.png",
     "Red Bull Racing": "red_bull.png",
+
+    "RB F1 Team": "racing_bulls.png",
     "Racing Bulls": "racing_bulls.png",
+
+    "Alpine F1 Team": "alpine.png",
     "Alpine": "alpine.png",
+
     "Haas F1 Team": "haas.png",
+    "Haas": "haas.png",
+
     "Audi": "audi.png",
     "Williams": "williams.png",
     "Aston Martin": "aston_martin.png",
@@ -89,6 +98,9 @@ def fetch_json(url, params=None, headers=None, retries=3):
 
             time.sleep(3)
 
+def format_points(points):
+    points = float(points)
+    return str(int(points)) if points.is_integer() else str(points)
 
 def fetch_image(url):
     r = requests.get(url, timeout=30)
@@ -294,7 +306,7 @@ def build_image(rows):
         # position
         draw.text(
             (start_x + 10, row_y + 8),
-            str(row["position"]),
+            format_points(row["position"]),
             font=position_font,
             fill=BLACK,
         )
@@ -336,7 +348,7 @@ def build_image(rows):
         )
 
         # points
-        pts = str(row["points"])
+        pts = format_points(row["points"])
         pts_w = text_w(draw, pts, row_points_font)
 
         draw.text(
