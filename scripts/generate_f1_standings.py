@@ -112,22 +112,43 @@ def fetch_image(url):
     return Image.open(BytesIO(r.content)).convert("RGBA")
 
 
-def paste_contain(base, overlay, box):
+def paste_contain(base, overlay, box, scale=1.0):
     x0, y0, x1, y1 = box
 
     max_w = x1 - x0
     max_h = y1 - y0
 
     img = overlay.copy()
-    img.thumbnail((max_w, max_h), Image.LANCZOS)
 
-    x = x0 + (max_w - img.width) // 2
-    y = y0 + (max_h - img.height) // 2
+    # Calculate scale needed to fit inside box
+    fit_scale = min(
+        max_w / img.width,
+        max_h / img.height
+    )
+
+    # Additional manual enlargement factor
+    final_scale = fit_scale * scale
+
+    new_w = int(img.width * final_scale)
+    new_h = int(img.height * final_scale)
+
+    img = img.resize(
+        (new_w, new_h),
+        Image.LANCZOS
+    )
+
+    # Center image in the box
+    x = x0 + (max_w - new_w) // 2
+    y = y0 + (max_h - new_h) // 2
 
     gray = ImageOps.grayscale(img)
     alpha = img.getchannel("A")
 
-    base.paste(gray, (x, y), alpha)
+    base.paste(
+        gray,
+        (x, y),
+        alpha
+    )
 
 
 def trim_transparent(img):
@@ -351,6 +372,7 @@ def build_image(rows):
                 img,
                 headshot,
                 (5, 85, 330, 335),
+                scale=1.35,
             )
     
         except Exception as e:
