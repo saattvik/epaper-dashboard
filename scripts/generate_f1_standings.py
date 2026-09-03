@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 import requests
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
+
 # ============================================================
 # Config
 # ============================================================
@@ -17,6 +18,7 @@ HEIGHT = 540
 TIMEZONE = "Asia/Kolkata"
 
 OPENF1_BASE = "https://api.openf1.org/v1"
+JOLPICA_BASE = "https://api.jolpi.ca/ergast/f1"
 
 OUTPUT_PATH = "docs/current.bmp"
 
@@ -98,9 +100,11 @@ def fetch_json(url, params=None, headers=None, retries=3):
 
             time.sleep(3)
 
+
 def format_points(points):
     points = float(points)
     return str(int(points)) if points.is_integer() else str(points)
+
 
 def fetch_image(url):
     r = requests.get(url, timeout=30)
@@ -128,6 +132,7 @@ def paste_contain(base, overlay, box):
 
 def wrap_text(draw, text, font, max_width):
     words = text.split()
+
     if not words:
         return [""]
 
@@ -136,6 +141,7 @@ def wrap_text(draw, text, font, max_width):
 
     for word in words[1:]:
         trial = current + " " + word
+
         if text_w(draw, trial, font) <= max_width:
             current = trial
         else:
@@ -143,14 +149,13 @@ def wrap_text(draw, text, font, max_width):
             current = word
 
     lines.append(current)
+
     return lines
+
 
 # ============================================================
 # Data
 # ============================================================
-JOLPICA_BASE = "https://api.jolpi.ca/ergast/f1"
-
-
 def get_standings():
     season = datetime.now(ZoneInfo(TIMEZONE)).year
 
@@ -214,25 +219,39 @@ def get_leader_headshot_url(leader_row):
 
     # First try matching by driver number
     for d in drivers:
-        if str(d.get("driver_number")) == str(leader_row.get("number")):
+        if str(d.get("driver_number")) == str(
+            leader_row.get("number")
+        ):
             return d.get("headshot_url")
 
-    # Fallback: match by acronym
-    leader_acr = (leader_row.get("acronym") or "").upper()
+    # Fallback: match by 3-letter acronym
+    leader_acr = (
+        leader_row.get("acronym") or ""
+    ).upper()
+
     for d in drivers:
-        if (d.get("name_acronym") or "").upper() == leader_acr:
+        if (
+            d.get("name_acronym") or ""
+        ).upper() == leader_acr:
             return d.get("headshot_url")
 
     return None
+
 
 # ============================================================
 # Rendering
 # ============================================================
 def build_image(rows):
-    img = Image.new("L", (WIDTH, HEIGHT), WHITE)
+    img = Image.new(
+        "L",
+        (WIDTH, HEIGHT),
+        WHITE,
+    )
+
     draw = ImageDraw.Draw(img)
 
     title_font = load_font(FONT_BOLD, 28)
+
     leader_font = load_font(FONT_BOLD, 31)
     leader_team_font = load_font(FONT_REGULAR, 18)
     points_big = load_font(FONT_BOLD, 38)
@@ -240,6 +259,7 @@ def build_image(rows):
     row_name_font = load_font(FONT_BOLD, 18)
     row_team_font = load_font(FONT_REGULAR, 13)
     row_points_font = load_font(FONT_BOLD, 18)
+
     position_font = load_font(FONT_BOLD, 18)
     footer_font = load_font(FONT_REGULAR, 14)
 
@@ -247,12 +267,26 @@ def build_image(rows):
     # Header
     # ========================================================
     if F1_LOGO_PATH.exists():
-        logo = Image.open(F1_LOGO_PATH).convert("RGBA")
-        paste_contain(img, logo, (20, 10, 95, 48))
-    else:
-        draw.text((20, 12), "F1", font=title_font, fill=BLACK)
+        logo = Image.open(
+            F1_LOGO_PATH
+        ).convert("RGBA")
 
-    season = datetime.now(ZoneInfo(TIMEZONE)).year
+        paste_contain(
+            img,
+            logo,
+            (20, 10, 95, 48),
+        )
+    else:
+        draw.text(
+            (20, 12),
+            "F1",
+            font=title_font,
+            fill=BLACK,
+        )
+
+    season = datetime.now(
+        ZoneInfo(TIMEZONE)
+    ).year
 
     draw.text(
         (110, 14),
@@ -289,155 +323,251 @@ def build_image(rows):
         fill=GRAY_DARK,
     )
 
-# Leader image
-if leader.get("headshot_url"):
-    try:
-        headshot = fetch_image(leader["headshot_url"])
-        paste_contain(
-            img,
-            headshot,
-            (45, 120, 310, 305),
-        )
-    except Exception as e:
-        print(f"Leader image failed: {e}")
-        draw.text((115, 190), "No image", font=leader_team_font, fill=GRAY_MED)
-else:
-    draw.text((115, 190), "No image", font=leader_team_font, fill=GRAY_MED)
-
-# Wrapped leader name
-name_max_width = left_x1 - left_x0 - 40
-name_lines = wrap_text(
-    draw,
-    leader["name"].title(),
-    leader_font,
-    name_max_width,
-)
-
-name_y = 325
-line_gap = 32
-
-for i, line in enumerate(name_lines):
-    draw.text(
-        (40, name_y + i * line_gap),
-        line,
-        font=leader_font,
-        fill=BLACK,
-    )
-
-team_y = name_y + len(name_lines) * line_gap + 6
-draw.text(
-    (40, team_y),
-    leader["team"],
-    font=leader_team_font,
-    fill=GRAY_DARK,
-)
-
-points_label_y = team_y + 34
-points_value_y = points_label_y + 18
-
-draw.text(
-    (40, points_label_y),
-    "PTS",
-    font=footer_font,
-    fill=GRAY_MED,
-)
-
-draw.text(
-    (40, points_value_y),
-    format_points(leader["points"]),
-    font=points_big,
-    fill=BLACK,
-)
-
-# ========================================================
-# Standings list
-# ========================================================
-start_x = 355
-row_y = 78
-row_h = 41
-
-for row in rows[:10]:
-
-    draw.line(
-        (start_x, row_y + row_h, 940, row_y + row_h),
-        fill=GRAY_LIGHT,
-        width=1,
-    )
-
-    # position
-    draw.text(
-        (start_x + 10, row_y + 8),
-        format_points(row["position"]),
-        font=position_font,
-        fill=BLACK,
-    )
-
-    # team logo
-    logo_filename = TEAM_LOGOS.get(row["team"])
-
-    if logo_filename:
-        logo_path = TEAM_DIR / logo_filename
-
-        if logo_path.exists():
-            team_logo = Image.open(logo_path).convert("RGBA")
+    # -------------------------
+    # Leader image
+    # -------------------------
+    if leader.get("headshot_url"):
+        try:
+            headshot = fetch_image(
+                leader["headshot_url"]
+            )
 
             paste_contain(
                 img,
-                team_logo,
-                (
-                    start_x + 50,
-                    row_y + 5,
-                    start_x + 90,
-                    row_y + 35,
-                ),
+                headshot,
+                (45, 120, 310, 305),
             )
 
-    # name
-    draw.text(
-        (start_x + 105, row_y + 3),
-        row["name"].title(),
-        font=row_name_font,
-        fill=BLACK,
+        except Exception as e:
+            print(
+                f"Leader image failed: {e}"
+            )
+
+            draw.text(
+                (115, 190),
+                "No image",
+                font=leader_team_font,
+                fill=GRAY_MED,
+            )
+
+    else:
+        draw.text(
+            (115, 190),
+            "No image",
+            font=leader_team_font,
+            fill=GRAY_MED,
+        )
+
+    # -------------------------
+    # Wrapped leader name
+    # -------------------------
+    name_max_width = (
+        left_x1 - left_x0 - 40
     )
 
-    # team
+    name_lines = wrap_text(
+        draw,
+        leader["name"].title(),
+        leader_font,
+        name_max_width,
+    )
+
+    name_y = 325
+    line_gap = 34
+
+    for i, line in enumerate(name_lines):
+        draw.text(
+            (
+                40,
+                name_y + i * line_gap,
+            ),
+            line,
+            font=leader_font,
+            fill=BLACK,
+        )
+
+    # -------------------------
+    # Team name
+    # -------------------------
+    team_y = (
+        name_y
+        + len(name_lines) * line_gap
+        + 6
+    )
+
     draw.text(
-        (start_x + 105, row_y + 23),
-        row["team"],
-        font=row_team_font,
+        (40, team_y),
+        leader["team"],
+        font=leader_team_font,
+        fill=GRAY_DARK,
+    )
+
+    # -------------------------
+    # Leader points
+    # -------------------------
+    points_label_y = team_y + 32
+    points_value_y = points_label_y + 16
+
+    draw.text(
+        (40, points_label_y),
+        "PTS",
+        font=footer_font,
         fill=GRAY_MED,
     )
 
-    # points
-    pts = format_points(row["points"])
-    pts_w = text_w(draw, pts, row_points_font)
-
     draw.text(
-        (920 - pts_w, row_y + 10),
-        pts,
-        font=row_points_font,
+        (40, points_value_y),
+        format_points(
+            leader["points"]
+        ),
+        font=points_big,
         fill=BLACK,
     )
 
-    row_y += row_h
+    # ========================================================
+    # Standings list
+    # ========================================================
+    start_x = 355
+    row_y = 78
+    row_h = 41
 
-# ========================================================
-# Footer
-# ========================================================
-now = datetime.now(ZoneInfo(TIMEZONE))
+    for row in rows[:10]:
 
-footer = "Updated " + now.strftime("%d %b %Y, %H:%M")
+        draw.line(
+            (
+                start_x,
+                row_y + row_h,
+                940,
+                row_y + row_h,
+            ),
+            fill=GRAY_LIGHT,
+            width=1,
+        )
 
-footer_w = text_w(draw, footer, footer_font)
+        # ---------------------
+        # Position
+        # ---------------------
+        draw.text(
+            (
+                start_x + 10,
+                row_y + 8,
+            ),
+            str(row["position"]),
+            font=position_font,
+            fill=BLACK,
+        )
 
-draw.text(
-    (940 - footer_w, 518),
-    footer,
-    font=footer_font,
-    fill=GRAY_MED,
-)
+        # ---------------------
+        # Team logo
+        # ---------------------
+        logo_filename = TEAM_LOGOS.get(
+            row["team"]
+        )
 
-return img
+        if logo_filename:
+            logo_path = (
+                TEAM_DIR /
+                logo_filename
+            )
+
+            if logo_path.exists():
+                team_logo = Image.open(
+                    logo_path
+                ).convert("RGBA")
+
+                paste_contain(
+                    img,
+                    team_logo,
+                    (
+                        start_x + 50,
+                        row_y + 5,
+                        start_x + 90,
+                        row_y + 35,
+                    ),
+                )
+
+        # ---------------------
+        # Driver name
+        # ---------------------
+        draw.text(
+            (
+                start_x + 105,
+                row_y + 3,
+            ),
+            row["name"].title(),
+            font=row_name_font,
+            fill=BLACK,
+        )
+
+        # ---------------------
+        # Team name
+        # ---------------------
+        draw.text(
+            (
+                start_x + 105,
+                row_y + 23,
+            ),
+            row["team"],
+            font=row_team_font,
+            fill=GRAY_MED,
+        )
+
+        # ---------------------
+        # Points
+        # ---------------------
+        pts = format_points(
+            row["points"]
+        )
+
+        pts_w = text_w(
+            draw,
+            pts,
+            row_points_font,
+        )
+
+        draw.text(
+            (
+                920 - pts_w,
+                row_y + 10,
+            ),
+            pts,
+            font=row_points_font,
+            fill=BLACK,
+        )
+
+        row_y += row_h
+
+    # ========================================================
+    # Footer
+    # ========================================================
+    now = datetime.now(
+        ZoneInfo(TIMEZONE)
+    )
+
+    footer = (
+        "Updated "
+        + now.strftime(
+            "%d %b %Y, %H:%M"
+        )
+    )
+
+    footer_w = text_w(
+        draw,
+        footer,
+        footer_font,
+    )
+
+    draw.text(
+        (
+            940 - footer_w,
+            518,
+        ),
+        footer,
+        font=footer_font,
+        fill=GRAY_MED,
+    )
+
+    return img
 
 
 # ============================================================
@@ -445,22 +575,58 @@ return img
 # ============================================================
 def main():
 
-    print("Fetching current F1 driver standings...")
+    print(
+        "Fetching current F1 driver standings..."
+    )
 
     rows = get_standings()
 
     if not rows:
-        raise RuntimeError("No standings returned")
+        raise RuntimeError(
+            "No standings returned"
+        )
 
-    print(f"Fetched {len(rows)} drivers")
+    print(
+        f"Fetched {len(rows)} drivers"
+    )
 
-    print("Fetching leader headshot...")
-    rows[0]["headshot_url"] = get_leader_headshot_url(rows[0])
+    print(
+        "Fetching leader headshot..."
+    )
+
+    try:
+        rows[0]["headshot_url"] = (
+            get_leader_headshot_url(
+                rows[0]
+            )
+        )
+
+        if rows[0]["headshot_url"]:
+            print(
+                "Leader headshot found."
+            )
+        else:
+            print(
+                "Leader headshot not found."
+            )
+
+    except Exception as e:
+        print(
+            f"Leader headshot lookup failed: {e}"
+        )
+
+        rows[0]["headshot_url"] = None
+
+    print(
+        "Rendering image..."
+    )
 
     img = build_image(rows)
 
     os.makedirs(
-        os.path.dirname(OUTPUT_PATH),
+        os.path.dirname(
+            OUTPUT_PATH
+        ),
         exist_ok=True,
     )
 
@@ -469,7 +635,9 @@ def main():
         format="BMP",
     )
 
-    print(f"Saved {OUTPUT_PATH}")
+    print(
+        f"Saved {OUTPUT_PATH}"
+    )
 
 
 if __name__ == "__main__":
