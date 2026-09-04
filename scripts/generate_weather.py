@@ -26,7 +26,7 @@ LAT, LON  = 12.9716, 77.5946
 TIMEZONE  = "Asia/Kolkata"   # Open-Meteo timezone name
 
 WIDTH, HEIGHT = 960, 540
-OUTPUT_PATH   = "docs/weather.bmp"
+OUTPUT_PATH   = "docs/current.bmp"
 
 FONT_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
