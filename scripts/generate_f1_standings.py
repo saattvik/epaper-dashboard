@@ -114,6 +114,7 @@ def fetch_image(url):
 
 def paste_contain(base, overlay, box, scale=1.0, align_bottom=False):
     x0, y0, x1, y1 = box
+    x0, y0, x1, y1 = int(round(x0)), int(round(y0)), int(round(x1)), int(round(y1))
 
     max_w = x1 - x0
     max_h = y1 - y0
@@ -149,7 +150,7 @@ def paste_contain(base, overlay, box, scale=1.0, align_bottom=False):
 
     base.paste(
         gray,
-        (x, y),
+        (int(x), int(y)),
         alpha
     )
 
@@ -188,6 +189,21 @@ def wrap_text(draw, text, font, max_width):
     lines.append(current)
 
     return lines
+
+
+def text_h_and_top_offset(draw, text, font):
+    """Returns (visible_height, bbox_top) for a piece of text - used to truly
+    center text vertically, since draw.text's y is the top of the font's
+    internal bounding box, not the top of the visible glyphs."""
+    bbox = draw.textbbox((0, 0), text, font=font)
+    return bbox[3] - bbox[1], bbox[1]
+
+
+def centered_text_y(draw, text, font, center_y):
+    """y-coordinate to pass to draw.text so the text is vertically centered
+    on center_y, accounting for the font's own internal metrics."""
+    h, top_offset = text_h_and_top_offset(draw, text, font)
+    return center_y - h / 2 - top_offset
 
 
 # ============================================================
@@ -293,11 +309,10 @@ def build_image(rows):
     leader_team_font = load_font(FONT_REGULAR, 18)
     points_big = load_font(FONT_BOLD, 38)
 
-    row_name_font = load_font(FONT_BOLD, 18)
-    row_team_font = load_font(FONT_REGULAR, 13)
-    row_points_font = load_font(FONT_BOLD, 18)
+    row_name_font = load_font(FONT_BOLD, 22)     # was 18 - enlarged now that team names are gone
+    row_points_font = load_font(FONT_BOLD, 19)   # was 18 - nudged up to match the larger name font
 
-    position_font = load_font(FONT_BOLD, 18)
+    position_font = load_font(FONT_BOLD, 19)     # was 18 - nudged up to match
     footer_font = load_font(FONT_REGULAR, 14)
 
     # ========================================================
@@ -343,8 +358,10 @@ def build_image(rows):
     # ========================================================
     # Leader section
     # ========================================================
-    left_x0 = 20
-    left_x1 = 280
+    # Box is 260px wide, centered between the display's left edge (x=0)
+    # and the standings column's left edge (start_x=320) -> center at x=160.
+    left_x0 = 30   # was 20
+    left_x1 = 290  # was 280
 
     draw.rounded_rectangle(
         (left_x0, 78, left_x1, 505),
@@ -354,7 +371,7 @@ def build_image(rows):
     )
 
     draw.text(
-        (45, 92),
+        (55, 92),   # was 45 - shifted +10 with the box
         "CHAMPIONSHIP LEADER",
         font=leader_team_font,
         fill=GRAY_DARK,
@@ -391,7 +408,7 @@ def build_image(rows):
             paste_contain(
                 img,
                 headshot,
-                (0, 90, 300, 325),
+                (10, 90, 310, 325),   # was (0, 90, 300, 325) - shifted +10
                 scale=0.85,
                 align_bottom=True,
             )
@@ -402,7 +419,7 @@ def build_image(rows):
             )
 
             draw.text(
-                (115, 190),
+                (125, 190),   # was 115 - shifted +10
                 "No image",
                 font=leader_team_font,
                 fill=GRAY_MED,
@@ -410,7 +427,7 @@ def build_image(rows):
 
     else:
         draw.text(
-            (115, 190),
+            (125, 190),   # was 115 - shifted +10
             "No image",
             font=leader_team_font,
             fill=GRAY_MED,
@@ -436,7 +453,7 @@ def build_image(rows):
     for i, line in enumerate(name_lines):
         draw.text(
             (
-                40,
+                50,   # was 40 - shifted +10
                 name_y + i * line_gap,
             ),
             line,
@@ -454,7 +471,7 @@ def build_image(rows):
     )
 
     draw.text(
-        (40, team_y),
+        (50, team_y),   # was 40 - shifted +10
         leader["team"],
         font=leader_team_font,
         fill=GRAY_DARK,
@@ -467,14 +484,14 @@ def build_image(rows):
     points_value_y = points_label_y + 10
 
     draw.text(
-        (40, points_label_y),
+        (50, points_label_y),   # was 40 - shifted +10
         "PTS",
         font=footer_font,
         fill=GRAY_MED,
     )
 
     draw.text(
-        (40, points_value_y),
+        (50, points_value_y),   # was 40 - shifted +10
         format_points(
             leader["points"]
         ),
@@ -489,6 +506,8 @@ def build_image(rows):
     row_y = 70
     row_h = 43
 
+    logo_cache = {}   # avoid re-opening the same team logo file multiple times
+
     for row in rows[:10]:
 
         draw.line(
@@ -502,15 +521,18 @@ def build_image(rows):
             width=2,
         )
 
+        row_center_y = row_y + row_h / 2
+
         # ---------------------
         # Position
         # ---------------------
+        pos_str = str(row["position"])
         draw.text(
             (
                 start_x + 10,
-                row_y + 8,
+                centered_text_y(draw, pos_str, position_font, row_center_y),
             ),
-            str(row["position"]),
+            pos_str,
             font=position_font,
             fill=BLACK,
         )
@@ -529,45 +551,38 @@ def build_image(rows):
             )
 
             if logo_path.exists():
-                team_logo = Image.open(
-                    logo_path
-                ).convert("RGBA")
+                if logo_path not in logo_cache:
+                    logo_cache[logo_path] = Image.open(
+                        logo_path
+                    ).convert("RGBA")
 
+                team_logo = logo_cache[logo_path]
+
+                logo_h = 30
                 paste_contain(
                     img,
                     team_logo,
                     (
                         start_x + 50,
-                        row_y + 5,
+                        row_center_y - logo_h / 2,
                         start_x + 90,
-                        row_y + 35,
+                        row_center_y + logo_h / 2,
                     ),
                 )
 
         # ---------------------
-        # Driver name
+        # Driver name (team name removed - name enlarged and
+        # vertically centered on the same row midpoint as the logo/points)
         # ---------------------
+        driver_name = row["name"].title()
         draw.text(
             (
                 start_x + 105,
-                row_y + 3,
+                centered_text_y(draw, driver_name, row_name_font, row_center_y),
             ),
-            row["name"].title(),
+            driver_name,
             font=row_name_font,
             fill=BLACK,
-        )
-
-        # ---------------------
-        # Team name
-        # ---------------------
-        draw.text(
-            (
-                start_x + 105,
-                row_y + 23,
-            ),
-            row["team"],
-            font=row_team_font,
-            fill=GRAY_MED,
         )
 
         # ---------------------
@@ -585,8 +600,8 @@ def build_image(rows):
 
         draw.text(
             (
-                920 - pts_w,
-                row_y + 10,
+                900 - pts_w,
+                centered_text_y(draw, pts, row_points_font, row_center_y),
             ),
             pts,
             font=row_points_font,
