@@ -18,7 +18,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 from io import BytesIO
 from pathlib import Path
-from datetime import datetime, date
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
@@ -1228,6 +1228,7 @@ def fetch_circuit_svg(circuit_id, season):
 def get_next_race():
     season = datetime.now(ZoneInfo("UTC")).year
     url = f"{JOLPICA_BASE}/{season}.json"
+
     data = fetch_json(
         url,
         headers={"User-Agent": "epaper-dashboard/1.0"},
@@ -1236,14 +1237,45 @@ def get_next_race():
 
     races = data["MRData"]["RaceTable"]["Races"]
     total_rounds = len(races)
-    today = date.today()
+
+    now_utc = datetime.now(ZoneInfo("UTC"))
+
+    print(f"Current UTC time: {now_utc}")
 
     for race in races:
-        race_date = datetime.strptime(race["date"], "%Y-%m-%d").date()
-        if race_date >= today:
-            race["_total_rounds"] = total_rounds
-            return race
+        race_date = race["date"]
+        race_time = race.get("time")
 
+        if race_time:
+            race_dt = datetime.strptime(
+                f"{race_date} {race_time.replace('Z', '')}",
+                "%Y-%m-%d %H:%M:%S",
+            ).replace(tzinfo=ZoneInfo("UTC"))
+
+            # Keep the race as current for roughly 3 hours after lights out.
+            race_end_estimate = race_dt + timedelta(hours=3)
+
+            print(
+                f"Checking {race['raceName']}: "
+                f"start={race_dt}, estimated_end={race_end_estimate}"
+            )
+
+            if race_end_estimate > now_utc:
+                race["_total_rounds"] = total_rounds
+                return race
+
+        else:
+            # Fallback if Jolpica does not provide a race start time.
+            race_dt = datetime.strptime(
+                race_date,
+                "%Y-%m-%d",
+            ).replace(tzinfo=ZoneInfo("UTC"))
+
+            if race_dt.date() >= now_utc.date():
+                race["_total_rounds"] = total_rounds
+                return race
+
+    # Season over: show final race instead of producing an empty page.
     if races:
         races[-1]["_total_rounds"] = total_rounds
         return races[-1]
