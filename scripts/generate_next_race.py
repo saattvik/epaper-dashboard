@@ -1395,7 +1395,7 @@ def build_image(race, winner, f1db_race):
     f_circuit = load_font(FONT_BOLD, 18)
     f_city = load_font(FONT_REGULAR, 15)
     f_round = load_font(FONT_BOLD, 33)
-    f_winner_name = load_font(FONT_BOLD, 22)
+    f_winner_name = load_font(FONT_BOLD, 25)
     f_winner_team = load_font(FONT_REGULAR, 15)
     f_stat_label = load_font(FONT_REGULAR, 15)
     f_stat_value = load_font(FONT_BOLD, 26)
@@ -1435,9 +1435,9 @@ def build_image(race, winner, f1db_race):
 
     round_str = f"ROUND {round_num} OF {total_rounds}"
     rs_w = text_w(draw, round_str, f_round)
-    draw.text((940 - rs_w, next_race_y), round_str, font=f_round, fill=GRAY_DARK)
+    draw.text((940 - rs_w, next_race_y), round_str, font=f_round, fill=BLACK)
 
-    draw.line((20, 65, 940, 65), fill=GRAY_LIGHT, width=2)   # reverted to original position
+    draw.line((20, 65, 940, 65), fill=BLACK, width=2)   # reverted to original position
 
     # ------------------------------------------------------------
     # Left column: race name
@@ -1449,7 +1449,7 @@ def build_image(race, winner, f1db_race):
         draw.text((left_x, ny), line, font=f_title, fill=BLACK)
         ny += 44
 
-    ny += 6
+    ny += 18
 
     # ------------------------------------------------------------
     # (1) Flag centered + same width as the row icon badges
@@ -1481,7 +1481,7 @@ def build_image(race, winner, f1db_race):
     # ------------------------------------------------------------
     if race.get("time"):
         ist_dt = race_dt_utc.astimezone(IST)
-        time_str = ist_dt.strftime("%H:%M IST")
+        time_str = ist_dt.strftime("%H:%M")
     else:
         time_str = "TBD"
 
@@ -1530,8 +1530,8 @@ def build_image(race, winner, f1db_race):
     # Middle column: track layout
     # ------------------------------------------------------------
     mid_x0, mid_x1 = 350, 655
-    draw.text((mid_x0, 78), "TRACK LAYOUT", font=f_section, fill=BLACK)
-    draw.line((mid_x0, 100, mid_x1, 100), fill=GRAY_LIGHT, width=1)
+    draw.text((mid_x0, 83), "TRACK LAYOUT", font=f_section, fill=BLACK)
+    draw.line((mid_x0, 105, mid_x1, 105), fill=GRAY_DARK, width=1)
 
     season = int(race["season"])
     try:
@@ -1554,12 +1554,12 @@ def build_image(race, winner, f1db_race):
     WINNER_SHIFT = 18
 
     draw.text(
-        (right_x0, 78),
+        (right_x0, 83),
         "LAST YEAR'S WINNER",
         font=f_section,
         fill=BLACK,
     )
-    draw.line((right_x0, 100, right_x1, 100), fill=GRAY_LIGHT, width=1)
+    draw.line((right_x0, 105, right_x1, 105), fill=GRAY_DARK, width=1)
 
     if winner:
         headshot_url = winner.get("headshot_url")
