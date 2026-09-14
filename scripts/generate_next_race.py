@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageOps
 
 try:
     import pycountry
@@ -74,7 +74,7 @@ FONT_BOLD = "fonts/BebasNeue-Regular.ttf"
 FONT_BEBAS = "fonts/BebasNeue-Regular.ttf"
 
 WHITE, BLACK = 255, 0
-GRAY_LIGHT, GRAY_MED, GRAY_DARK = 225, 145, 70
+GRAY_LIGHT, GRAY_MED, GRAY_DARK = 200, 145, 70
 
 TEAM_LOGOS = {
     "Mercedes": "mercedes.png",
@@ -221,6 +221,26 @@ def dither_to_epaper_gray(img):
 
     return img.quantize(palette=pal_img, dither=Image.FLOYDSTEINBERG).convert("L")
 
+def brighten_for_epaper(img, brightness=1.15, gamma=0.85, autocontrast_cutoff=1):
+    """Lightens a photo before quantizing to the panel's 16 gray levels.
+    Driver photos (dark suits/helmets, sometimes dark backgrounds) tend to
+    render darker on the physical e-paper than they look in a monitor
+    preview, so we stretch contrast to use the full range, lift shadows/
+    midtones via a gamma curve, then apply a uniform brightness boost.
+    Only meant for photographic content - not flags, logos, or text."""
+    if img.mode != "L":
+        img = img.convert("L")
+ 
+    img = ImageOps.autocontrast(img, cutoff=autocontrast_cutoff)
+ 
+    if gamma != 1.0:
+        lut = [min(255, int((i / 255) ** gamma * 255)) for i in range(256)]
+        img = img.point(lut)
+ 
+    if brightness != 1.0:
+        img = ImageEnhance.Brightness(img).enhance(brightness)
+ 
+    return img
 
 def country_to_iso2(country_name):
     if country_name in COUNTRY_NAME_OVERRIDES:
@@ -1531,7 +1551,7 @@ def build_image(race, winner, f1db_race):
     # ------------------------------------------------------------
     mid_x0, mid_x1 = 350, 655
     draw.text((mid_x0, 83), "TRACK LAYOUT", font=f_section, fill=BLACK)
-    draw.line((mid_x0, 105, mid_x1, 105), fill=GRAY_DARK, width=1)
+    draw.line((mid_x0, 105, mid_x1, 105), fill=GRAY_LIGHT, width=1)
 
     season = int(race["season"])
     try:
@@ -1559,7 +1579,7 @@ def build_image(race, winner, f1db_race):
         font=f_section,
         fill=BLACK,
     )
-    draw.line((right_x0, 105, right_x1, 105), fill=GRAY_DARK, width=1)
+    draw.line((right_x0, 105, right_x1, 105), fill=GRAY_LIGHT, width=1)
 
     if winner:
         headshot_url = winner.get("headshot_url")
@@ -1575,7 +1595,8 @@ def build_image(race, winner, f1db_race):
 
                 composited = Image.new("RGB", headshot.size, (255, 255, 255))
                 composited.paste(headshot, (0, 0), headshot.getchannel("A"))
-                dithered = dither_to_epaper_gray(composited)
+                brightened = brighten_for_epaper(composited)
+                dithered = dither_to_epaper_gray(brightened)
 
                 box_w, box_h = right_x1 - right_x0, 170
                 fit_scale = min(box_w / dithered.width, box_h / dithered.height)
