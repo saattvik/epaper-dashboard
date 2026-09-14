@@ -74,7 +74,7 @@ STAT_ICON_FILES = {
 
 BLACK = 0
 WHITE = 255
-GRAY_LIGHT = 190   # for the precipitation shading in the graph
+GRAY_LIGHT = 200  # for the precipitation shading in the graph
 GRAY_MED   = 110   # for secondary/footer text
 
 
