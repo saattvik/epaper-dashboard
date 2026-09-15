@@ -382,7 +382,7 @@ def build_image(data):
                 method=Image.LANCZOS,
             )
             hero_img = rounded_image(hero_img, 16)
-            hero_img = brighten_for_epaper(hero_img, brightness=1.15, gamma=0.85, autocontrast_cutoff=1)
+            hero_img = brighten_for_epaper(hero_img, brightness=1.15, gamma=0.95, autocontrast_cutoff=1)
             img.paste(hero_img, (hero_img_x, hero_img_y))
 
         name_lines = wrap_text(draw, featured["name"].upper(), f["hero_name"], 230, max_lines=2)
@@ -402,7 +402,7 @@ def build_image(data):
         if art:
             art = ImageOps.fit(art.convert("L"), (thumb_size, thumb_size), method=Image.LANCZOS)
 #            art = rounded_image(art, 8)
-            art = brighten_for_epaper(art, brightness=1.15, gamma=0.85, autocontrast_cutoff=1)
+            art = brighten_for_epaper(art, brightness=1.15, gamma=0.95, autocontrast_cutoff=1)
             img.paste(art, (artist_list_x + 36, artist_row_y))
 
         draw.text((artist_list_x, artist_row_y + 11), str(idx), font=f["rank"], fill=GRAY_DARK)
@@ -425,7 +425,7 @@ def build_image(data):
         cover = fetch_image(cover_url)
         if cover:
             cover = ImageOps.fit(cover.convert("L"), (thumb_size, thumb_size), method=Image.LANCZOS)
-            cover = brighten_for_epaper(cover, brightness=1.15, gamma=0.85, autocontrast_cutoff=1)
+            cover = brighten_for_epaper(cover, brightness=1.15, gamma=0.95, autocontrast_cutoff=1)
             img.paste(cover, (right_x0 + 32, track_row_y))
 
         draw.text((right_x0, track_row_y + 11), str(rank), font=f["rank"], fill=GRAY_DARK)
