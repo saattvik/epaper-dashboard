@@ -14,7 +14,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import requests
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageEnhance
 
 WIDTH, HEIGHT = 960, 540
 OUTPUT_PATH = "docs/current.bmp"
@@ -187,6 +187,26 @@ def fetch_image(url):
         print(f"Image fetch failed: {e}")
         return None
 
+def brighten_for_epaper(img, brightness=1.15, gamma=0.85, autocontrast_cutoff=1):
+    """Lightens a photo before quantizing to the panel's 16 gray levels.
+    Driver photos (dark suits/helmets, sometimes dark backgrounds) tend to
+    render darker on the physical e-paper than they look in a monitor
+    preview, so we stretch contrast to use the full range, lift shadows/
+    midtones via a gamma curve, then apply a uniform brightness boost.
+    Only meant for photographic content - not flags, logos, or text."""
+    if img.mode != "L":
+        img = img.convert("L")
+ 
+    img = ImageOps.autocontrast(img, cutoff=autocontrast_cutoff)
+ 
+    if gamma != 1.0:
+        lut = [min(255, int((i / 255) ** gamma * 255)) for i in range(256)]
+        img = img.point(lut)
+ 
+    if brightness != 1.0:
+        img = ImageEnhance.Brightness(img).enhance(brightness)
+ 
+    return img
 
 def compact_number(n):
     if n is None:
@@ -284,6 +304,7 @@ def build_image(data):
     current = data["current"]
     library = data["library"]
 
+
     # ------------------------------------------------------------
     # Header
     # ------------------------------------------------------------
@@ -361,6 +382,7 @@ def build_image(data):
                 method=Image.LANCZOS,
             )
             hero_img = rounded_image(hero_img, 16)
+            hero_img = brighten_for_epaper(hero_img, brightness=1.15, gamma=0.85, autocontrast_cutoff=1)
             img.paste(hero_img, (hero_img_x, hero_img_y))
 
         name_lines = wrap_text(draw, featured["name"].upper(), f["hero_name"], 230, max_lines=2)
@@ -380,6 +402,7 @@ def build_image(data):
         if art:
             art = ImageOps.fit(art.convert("L"), (thumb_size, thumb_size), method=Image.LANCZOS)
 #            art = rounded_image(art, 8)
+            art = brighten_for_epaper(art, brightness=1.15, gamma=0.85, autocontrast_cutoff=1)
             img.paste(art, (artist_list_x + 36, artist_row_y))
 
         draw.text((artist_list_x, artist_row_y + 11), str(idx), font=f["rank"], fill=GRAY_DARK)
@@ -402,6 +425,7 @@ def build_image(data):
         cover = fetch_image(cover_url)
         if cover:
             cover = ImageOps.fit(cover.convert("L"), (thumb_size, thumb_size), method=Image.LANCZOS)
+            cover = brighten_for_epaper(cover, brightness=1.15, gamma=0.85, autocontrast_cutoff=1)
             img.paste(cover, (right_x0 + 32, track_row_y))
 
         draw.text((right_x0, track_row_y + 11), str(rank), font=f["rank"], fill=GRAY_DARK)
