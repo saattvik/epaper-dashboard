@@ -32,6 +32,13 @@ FONT_REGULAR = os.path.join(FONT_DIR, "OpenSans-Regular.ttf")
 FONT_BOLD = os.path.join(FONT_DIR, "OpenSans-Bold.ttf")
 FONT_DISPLAY = os.path.join(FONT_DIR, "BebasNeue-Regular.ttf")
 
+SPOTIFY_LOGO_PATH = os.path.join(
+    REPO_DIR,
+    "assets",
+    "spotify",
+    "logo.png",
+)
+
 WHITE = 255
 BLACK = 0
 GRAY_DARK = 70
@@ -51,24 +58,19 @@ def load_fonts():
     return {
         "title": load_font(FONT_DISPLAY, 38),
         "section": load_font(FONT_DISPLAY, 23),
+        "period": load_font(FONT_BOLD, 18),
         "hero_rank": load_font(FONT_BOLD, 28),
-        "rank": load_font(FONT_BOLD, 18),
+        "rank": load_font(FONT_BOLD, 22),
         "name": load_font(FONT_BOLD, 18),
-        "small_name": load_font(FONT_BOLD, 15),
-        "secondary": load_font(FONT_REGULAR, 13),
+        "small_name": load_font(FONT_BOLD, 18),
+        "secondary": load_font(FONT_REGULAR, 15),
         "tiny": load_font(FONT_REGULAR, 12),
         "hero_name": load_font(FONT_DISPLAY, 30),
-        "library_label": load_font(FONT_REGULAR, 14),
-        "library_value": load_font(FONT_BOLD, 19),
+        "library_label": load_font(FONT_REGULAR, 16),
+        "library_value": load_font(FONT_BOLD, 28),
         "footer": load_font(FONT_REGULAR, 12),
     }
 
-SPOTIFY_LOGO_PATH = os.path.join(
-    REPO_DIR,
-    "assets",
-    "spotify",
-    "logo.png",
-)
 
 def text_w(draw, text, font):
     box = draw.textbbox((0, 0), str(text), font=font)
@@ -223,13 +225,11 @@ def relative_time(iso_time):
 
 def fetch_library_counts(access_token):
     saved_tracks = spotify_get(access_token, "/me/tracks", params={"limit": 1})
-    saved_albums = spotify_get(access_token, "/me/albums", params={"limit": 1})
     playlists = spotify_get(access_token, "/me/playlists", params={"limit": 1})
     followed = spotify_get(access_token, "/me/following", params={"type": "artist", "limit": 1})
 
     return {
         "saved_tracks": saved_tracks.get("total", 0),
-        "saved_albums": saved_albums.get("total", 0),
         "playlists": playlists.get("total", 0),
         "followed_artists": followed.get("artists", {}).get("total", 0),
     }
@@ -241,13 +241,13 @@ def fetch_spotify_data():
     artists = spotify_get(
         token,
         "/me/top/artists",
-        params={"time_range": TIME_RANGE, "limit": 7},
+        params={"time_range": TIME_RANGE, "limit": 6},
     )["items"]
 
     tracks = spotify_get(
         token,
         "/me/top/tracks",
-        params={"time_range": TIME_RANGE, "limit": 6},
+        params={"time_range": TIME_RANGE, "limit": 5},
     )["items"]
 
     recent = spotify_get(
@@ -292,73 +292,39 @@ def build_image(data):
     if os.path.exists(SPOTIFY_LOGO_PATH):
         logo = Image.open(SPOTIFY_LOGO_PATH).convert("RGBA")
 
-        # Crop transparent padding if present
         alpha = logo.getchannel("A")
         bbox = alpha.getbbox()
         if bbox:
             logo = logo.crop(bbox)
 
-        # Scale logo to fit inside logo_box
         box_w = logo_box[2] - logo_box[0]
         box_h = logo_box[3] - logo_box[1]
 
-        scale = min(
-            box_w / logo.width,
-            box_h / logo.height,
-        )
-
+        scale = min(box_w / logo.width, box_h / logo.height)
         new_w = max(1, int(logo.width * scale))
         new_h = max(1, int(logo.height * scale))
 
-        logo = logo.resize(
-            (new_w, new_h),
-            Image.LANCZOS,
-        )
+        logo = logo.resize((new_w, new_h), Image.LANCZOS)
 
-        # Convert to grayscale but preserve transparency
         gray_logo = ImageOps.grayscale(logo)
         alpha = logo.getchannel("A")
 
         x = logo_box[0] + (box_w - new_w) // 2
         y = logo_box[1] + (box_h - new_h) // 2
+        img.paste(gray_logo, (x, y), alpha)
 
-        img.paste(
-            gray_logo,
-            (x, y),
-            alpha,
-        )
-
-    # Spotify Stats title to the right of logo
     title_x = 82
-
-    draw.text(
-        (title_x, 10),
-        "SPOTIFY STATS",
-        font=f["title"],
-        fill=BLACK,
-    )
+    draw.text((title_x, 10), "SPOTIFY STATS", font=f["title"], fill=BLACK)
 
     period = period_label()
-
     draw.text(
-        (
-            940 - text_w(
-                draw,
-                period,
-                f["secondary"],
-            ),
-            22,
-        ),
+        (940 - text_w(draw, period, f["period"]), 18),
         period,
-        font=f["secondary"],
+        font=f["period"],
         fill=GRAY_DARK,
     )
 
-    draw.line(
-        (20, 58, 940, 58),
-        fill=GRAY_LIGHT,
-        width=2,
-    )
+    draw.line((20, 58, 940, 58), fill=GRAY_LIGHT, width=2)
 
     # ------------------------------------------------------------
     # Section headers
@@ -376,35 +342,37 @@ def build_image(data):
     # Top Artists
     # ------------------------------------------------------------
     featured = artists[0] if artists else None
-    others = artists[1:7] if len(artists) > 1 else []
+    others = artists[1:6] if len(artists) > 1 else []
 
-    # Big featured artist, no box
-    hero_x = 20
-    hero_img_x = 50
-    hero_img_y = 150
-    hero_img_size = 190
+    hero_img_x = 40
+    hero_img_y = 118
+    hero_img_size = 225
     hero_center_x = hero_img_x + hero_img_size / 2
 
     if featured:
-#        draw.text((hero_x + 12, 120), "1", font=f["hero_rank"], fill=BLACK)
+#        draw.text((25, 122), "1", font=f["hero_rank"], fill=BLACK)
 
         hero_url = featured.get("images", [{}])[0].get("url") if featured.get("images") else None
         hero_img = fetch_image(hero_url)
         if hero_img:
-            hero_img = ImageOps.fit(hero_img.convert("L"), (hero_img_size, hero_img_size), method=Image.LANCZOS)
+            hero_img = ImageOps.fit(
+                hero_img.convert("L"),
+                (hero_img_size, hero_img_size),
+                method=Image.LANCZOS,
+            )
             hero_img = rounded_image(hero_img, 16)
             img.paste(hero_img, (hero_img_x, hero_img_y))
 
-        name_lines = wrap_text(draw, featured["name"].upper(), f["hero_name"], 210, max_lines=2)
+        name_lines = wrap_text(draw, featured["name"].upper(), f["hero_name"], 230, max_lines=2)
         base_y = hero_img_y + hero_img_size + 12
         for i, line in enumerate(name_lines):
             draw_centered_text(draw, hero_center_x, base_y + i * 28, line, f["hero_name"], BLACK)
 
-    # Small artist list (#2 to #7)
-    thumb_size = 40
-    artist_list_x = 305
-    artist_row_y = 115
-    row_step = 46
+    # Smaller artist list (#2 to #6)
+    thumb_size = 50
+    artist_list_x = 300
+    artist_row_y = 110
+    row_step = 56
 
     for idx, artist in enumerate(others, start=2):
         art_url = artist.get("images", [{}])[-1].get("url") if artist.get("images") else None
@@ -412,39 +380,39 @@ def build_image(data):
         if art:
             art = ImageOps.fit(art.convert("L"), (thumb_size, thumb_size), method=Image.LANCZOS)
 #            art = rounded_image(art, 8)
-            img.paste(art, (artist_list_x + 32, artist_row_y))
+            img.paste(art, (artist_list_x + 36, artist_row_y))
 
-        draw.text((artist_list_x, artist_row_y + 8), str(idx), font=f["rank"], fill=GRAY_DARK)
+        draw.text((artist_list_x, artist_row_y + 11), str(idx), font=f["rank"], fill=GRAY_DARK)
 
-        name_x = artist_list_x + 82
+        name_x = artist_list_x + 98
         max_w = left_x1 - name_x
         name = fit_text(draw, artist["name"], f["small_name"], max_w)
-        draw.text((name_x, artist_row_y + 4), name, font=f["small_name"], fill=BLACK)
+        draw.text((name_x, artist_row_y + 10), name, font=f["small_name"], fill=BLACK)
 
         artist_row_y += row_step
 
     # ------------------------------------------------------------
     # Top Tracks
     # ------------------------------------------------------------
-    track_row_y = 115
+    track_row_y = 110
 
-    for rank, track in enumerate(tracks[:6], 1):
+    for rank, track in enumerate(tracks[:5], 1):
         images = track.get("album", {}).get("images") or []
         cover_url = images[-1].get("url") if images else None
         cover = fetch_image(cover_url)
         if cover:
             cover = ImageOps.fit(cover.convert("L"), (thumb_size, thumb_size), method=Image.LANCZOS)
-            img.paste(cover, (right_x0 + 30, track_row_y))
+            img.paste(cover, (right_x0 + 32, track_row_y))
 
-        draw.text((right_x0, track_row_y + 8), str(rank), font=f["rank"], fill=GRAY_DARK)
+        draw.text((right_x0, track_row_y + 11), str(rank), font=f["rank"], fill=GRAY_DARK)
 
-        name_x = right_x0 + 82
+        name_x = right_x0 + 96
         max_w = right_x1 - name_x
         name = fit_text(draw, track["name"], f["small_name"], max_w)
         artist_text = fit_text(draw, track_artist_names(track), f["secondary"], max_w)
 
-        draw.text((name_x, track_row_y + 2), name, font=f["small_name"], fill=BLACK)
-        draw.text((name_x, track_row_y + 22), artist_text, font=f["secondary"], fill=GRAY_MED)
+        draw.text((name_x, track_row_y + 6), name, font=f["small_name"], fill=BLACK)
+        draw.text((name_x, track_row_y + 30), artist_text, font=f["secondary"], fill=GRAY_MED)
 
         track_row_y += row_step
 
@@ -456,7 +424,7 @@ def build_image(data):
     # ------------------------------------------------------------
     # Last Played / Now Playing
     # ------------------------------------------------------------
-    bottom_left_x0, bottom_left_x1 = 20, 455
+    bottom_left_x0, bottom_left_x1 = 20, 445
 
     current_track = None
     currently_playing = False
@@ -507,24 +475,21 @@ def build_image(data):
     lib_x0 = 500
     draw.text((lib_x0, 420), "YOUR LIBRARY", font=f["section"], fill=BLACK)
 
-    # compact 2x2 layout so it stays inside screen
     items = [
         ("Saved Songs", compact_number(library.get("saved_tracks", 0))),
         ("Playlists", compact_number(library.get("playlists", 0))),
-        ("Saved Albums", compact_number(library.get("saved_albums", 0))),
         ("Following", compact_number(library.get("followed_artists", 0))),
     ]
 
     positions = [
-        (500, 456),
-        (720, 456),
-        (500, 495),
-        (720, 495),
+        (500, 462),
+        (665, 462),
+        (810, 462),
     ]
 
     for (label_text, value_text), (x, y) in zip(items, positions):
         draw.text((x, y), label_text, font=f["library_label"], fill=GRAY_DARK)
-        draw.text((x, y + 18), str(value_text), font=f["library_value"], fill=BLACK)
+        draw.text((x, y + 20), str(value_text), font=f["library_value"], fill=BLACK)
 
     # ------------------------------------------------------------
     # Footer
