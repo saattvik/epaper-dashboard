@@ -414,7 +414,7 @@ def build_image(data):
         name_x = artist_list_x + 98
         max_w = left_x1 - name_x
         name = fit_text(draw, artist["name"], f["small_name"], max_w)
-        draw.text((name_x, artist_row_y + 10), name, font=f["small_name"], fill=BLACK)
+        draw.text((name_x, artist_row_y + 13), name, font=f["small_name"], fill=BLACK)
 
         artist_row_y += row_step
 
