@@ -28,8 +28,12 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 FONT_DIR = os.path.join(REPO_DIR, "fonts")
 
-FONT_REGULAR = os.path.join(FONT_DIR, "OpenSans-Regular.ttf")
-FONT_BOLD = os.path.join(FONT_DIR, "OpenSans-Bold.ttf")
+#FONT_REGULAR = os.path.join(FONT_DIR, "OpenSans-Regular.ttf")
+#FONT_BOLD = os.path.join(FONT_DIR, "OpenSans-Bold.ttf")
+#FONT_DISPLAY = os.path.join(FONT_DIR, "BebasNeue-Regular.ttf")
+
+FONT_REGULAR = os.path.join(FONT_DIR, "Inter_24pt-Regular.ttf")
+FONT_BOLD = os.path.join(FONT_DIR, "Inter_24pt-Bold.ttf")
 FONT_DISPLAY = os.path.join(FONT_DIR, "BebasNeue-Regular.ttf")
 
 SPOTIFY_LOGO_PATH = os.path.join(
@@ -335,7 +339,7 @@ def build_image(data):
         img.paste(gray_logo, (x, y), alpha)
 
     title_x = 82
-    draw.text((title_x, 10), "SPOTIFY STATS", font=f["title"], fill=BLACK)
+    draw.text((title_x, 10), "SPOTIFY", font=f["title"], fill=BLACK)
 
     period = period_label()
     draw.text(
