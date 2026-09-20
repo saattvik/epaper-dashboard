@@ -18,8 +18,11 @@ import zipfile
 import xml.etree.ElementTree as ET
 from io import BytesIO
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
+
+import json
+import hashlib
 
 import requests
 from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageOps
@@ -1684,6 +1687,42 @@ def build_image(race, winner, f1db_race):
 
     return img
 
+# ============================================================
+# JSON creation
+# ============================================================
+
+def write_page_manifest(page_name, bmp_path="docs/current.bmp"):
+    with open(bmp_path, "rb") as f:
+        bmp_data = f.read()
+
+    sha256 = hashlib.sha256(bmp_data).hexdigest()
+
+    with Image.open(bmp_path) as bmp:
+        width, height = bmp.size
+
+    manifest = {
+        "page": page_name,
+        "file": "current.bmp",
+        "sha256": sha256,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "width": width,
+        "height": height,
+    }
+
+    os.makedirs("docs", exist_ok=True)
+
+    with open(
+        "docs/current.json",
+        "w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(
+            manifest,
+            f,
+            indent=2,
+        )
+
+    print(f"Saved manifest for page: {page_name}")
 
 # ============================================================
 # Main
@@ -1722,6 +1761,11 @@ def main():
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     img.save(OUTPUT_PATH, format="BMP")
     print(f"Saved {OUTPUT_PATH}")
+
+    write_page_manifest(
+    "next_race",
+    OUTPUT_PATH,
+    )
 
 
 if __name__ == "__main__":

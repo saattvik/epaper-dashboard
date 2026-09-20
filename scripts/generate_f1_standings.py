@@ -2,11 +2,14 @@ import os
 import time
 from io import BytesIO
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 import requests
 from PIL import Image, ImageDraw, ImageFont, ImageOps
+
+import json
+import hashlib
 
 
 # ============================================================
@@ -642,6 +645,42 @@ def build_image(rows):
 
     return img
 
+# ============================================================
+# JSON creation
+# ============================================================
+
+def write_page_manifest(page_name, bmp_path="docs/current.bmp"):
+    with open(bmp_path, "rb") as f:
+        bmp_data = f.read()
+
+    sha256 = hashlib.sha256(bmp_data).hexdigest()
+
+    with Image.open(bmp_path) as bmp:
+        width, height = bmp.size
+
+    manifest = {
+        "page": page_name,
+        "file": "current.bmp",
+        "sha256": sha256,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "width": width,
+        "height": height,
+    }
+
+    os.makedirs("docs", exist_ok=True)
+
+    with open(
+        "docs/current.json",
+        "w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(
+            manifest,
+            f,
+            indent=2,
+        )
+
+    print(f"Saved manifest for page: {page_name}")
 
 # ============================================================
 # Main
@@ -710,6 +749,11 @@ def main():
 
     print(
         f"Saved {OUTPUT_PATH}"
+    )
+
+    write_page_manifest(
+    "f1_standings",
+    OUTPUT_PATH,
     )
 
 
