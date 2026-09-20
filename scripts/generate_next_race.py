@@ -1763,7 +1763,7 @@ def main():
     print(f"Saved {OUTPUT_PATH}")
 
     write_page_manifest(
-    "next_race",
+    "f1_next",
     OUTPUT_PATH,
     )
 
