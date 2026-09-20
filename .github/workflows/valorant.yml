@@ -1,0 +1,61 @@
+name: Generate Valorant Dashboard
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    env:
+      VALORANT_NAME: ${{ secrets.VALORANT_NAME }}
+      VALORANT_TAG: ${{ secrets.VALORANT_TAG }}
+      VALORANT_REGION: ap
+      HENRIK_API_KEY: ${{ secrets.HENRIK_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate Valorant dashboard
+        run: |
+          python scripts/generate_valorant.py
+
+      - name: Verify generated image
+        run: |
+          ls -lh docs/current.bmp
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
