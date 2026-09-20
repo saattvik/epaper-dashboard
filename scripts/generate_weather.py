@@ -7,7 +7,7 @@ and saves it as an uncompressed 8-bit grayscale BMP
 at 960x540 - matching the panel resolution.
 
 Run directly to test:  python generate_weather.py
-Output:                weather.bmp (in the same folder)
+Output:                weather.bmp
 """
 
 import time
@@ -18,6 +18,10 @@ from zoneinfo import ZoneInfo
 
 import requests
 from PIL import Image, ImageDraw, ImageFont
+
+import json
+import hashlib
+from datetime import datetime, timezone
 
 # =====================================================================
 # CONFIG - edit these for your location
@@ -630,6 +634,39 @@ def save_bmp(img, path):
     img.save(path, format="BMP")
 
 
+def write_page_manifest(page_name, bmp_path="docs/current.bmp"):
+    with open(bmp_path, "rb") as f:
+        bmp_data = f.read()
+
+    sha256 = hashlib.sha256(bmp_data).hexdigest()
+
+    with Image.open(bmp_path) as bmp:
+        width, height = bmp.size
+
+    manifest = {
+        "page": page_name,
+        "file": "current.bmp",
+        "sha256": sha256,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "width": width,
+        "height": height,
+    }
+
+    os.makedirs("docs", exist_ok=True)
+
+    with open(
+        "docs/current.json",
+        "w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(
+            manifest,
+            f,
+            indent=2,
+        )
+
+    print(f"Saved manifest for page: {page_name}")
+
 def main():
     print(f"Fetching weather for {CITY_NAME} ({LAT}, {LON})...")
     data = fetch_weather()
@@ -644,6 +681,8 @@ def main():
     save_bmp(img, OUTPUT_PATH)
     print(f"Saved {OUTPUT_PATH} ({img.size[0]}x{img.size[1]}, mode={img.mode})")
 
+    write_page_manifest("weather",OUTPUT_PATH,)
+    print("JSON data written")
 
 if __name__ == "__main__":
     main()
